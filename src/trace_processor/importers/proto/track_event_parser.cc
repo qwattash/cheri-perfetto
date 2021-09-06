@@ -51,6 +51,7 @@
 #include "protos/perfetto/trace/track_event/thread_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
+#include "protos/perfetto/trace/track_event/qemu_event_info.pbzero.h"
 
 namespace perfetto {
 namespace trace_processor {

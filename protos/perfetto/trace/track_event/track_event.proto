@@ -33,6 +33,7 @@ import "protos/perfetto/trace/track_event/chrome_renderer_scheduler_state.proto"
 import "protos/perfetto/trace/track_event/chrome_user_event.proto";
 import "protos/perfetto/trace/track_event/chrome_window_handle_event_info.proto";
 import "protos/perfetto/trace/track_event/source_location.proto";
+import "protos/perfetto/trace/track_event/qemu_event_info.proto";
 
 package perfetto.protos;
 
@@ -268,6 +269,9 @@ message TrackEvent {
   //
   // Contact perfetto-dev@googlegroups.com if you are interested in a subrange
   // for your project.
+
+  // TODO(amazzinghi): move to extension
+  optional QEMUEventInfo qemu = 100;
 
   // Extension range for future use.
   extensions 1000 to 9899;

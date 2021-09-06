@@ -6310,6 +6310,30 @@ message SourceLocation {
 
 // End of protos/perfetto/trace/track_event/source_location.proto
 
+// Begin of protos/perfetto/trace/track_event/cheri_qemu_event.proto
+
+// Details about a QEMU track event
+message QEMUEventInfo {
+    optional bool test = 1;
+    // oneof data {
+    //     // Executed instruction info
+    //     QEMUInstruction instr = 1;
+    //     // Basic Block hit histogram samples
+    //     QEMUBBHitHistogram bb_hist = 16;
+    //     // Function call hit histogram samples
+    //     QEMUCallHitHistogram call_hist = 17;
+    // }
+}
+
+message QEMUInstruction {
+    optional bytes opcode = 1;
+}
+
+message QEMUBBHitHistogram {}
+
+message QEMUCallHitHistogram {}
+// End of protos/perfetto/trace/track_event/cheri_qemu_event.proto
+
 // Begin of protos/perfetto/trace/track_event/chrome_application_state_info.proto
 
 
@@ -7133,6 +7157,7 @@ message TrackEvent {
   optional ChromeMojoEventInfo chrome_mojo_event_info = 38;
 
   // New argument types go here :)
+  optional QEMUEventInfo qemu = 100;
 
   // Extension range for typed events defined externally.
   // See docs/design-docs/extensions.md for more details.
