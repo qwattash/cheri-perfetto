@@ -65,7 +65,7 @@ message MemInfo {
 }
 
 message QEMUInstruction {
-    // TODO(amazzinghi): This should be bytes but bytes fields are not yet supported.
+    // TODO(amazzinghi): This should be a bytes field but it is not yet supported.
     optional string opcode = 1;
     optional uint64 pc = 2;
     optional Trap trap = 3;
@@ -83,6 +83,9 @@ message HistogramBucket {
     required int64 value = 3;
 }
 
+// TODO(amazzinghi): Histograms can generate large messages, if they exceed the size
+// of the trace buffer it gets very wrong. Probably we need to emit the samples as separate
+// trace packets?
 message StatsHistogram {
     enum StatsType {
         BB_HIT = 0;
