@@ -5706,8 +5706,8 @@ const char* GetVersionString();
 #ifndef GEN_PERFETTO_VERSION_GEN_H_
 #define GEN_PERFETTO_VERSION_GEN_H_
 
-#define PERFETTO_VERSION_STRING() "v19.0-4db8d334e"
-#define PERFETTO_VERSION_SCM_REVISION() "4db8d334e0a6cf1b81fee767c87d8bc847ef6f16"
+#define PERFETTO_VERSION_STRING() "v19.0-d5f866708"
+#define PERFETTO_VERSION_SCM_REVISION() "d5f866708d414093a84c53a20cbe57824adab3ec"
 
 #endif  // GEN_PERFETTO_VERSION_GEN_H_
 /*
@@ -30018,7 +30018,13 @@ namespace protos {
 namespace gen {
 enum ModeSwitch : int {
   USER = 0,
-  SYSTEM = 1,
+  SUPERVISOR = 1,
+  HYPERVISOR = 2,
+  DEBUG = 3,
+  ARCHSPECIFIC_1 = 4,
+  ARCHSPECIFIC_2 = 5,
+  ARCHSPECIFIC_3 = 6,
+  ARCHSPECIFIC_4 = 7,
 };
 enum StatsHistogram_StatsType : int {
   StatsHistogram_StatsType_BB_HIT = 0,

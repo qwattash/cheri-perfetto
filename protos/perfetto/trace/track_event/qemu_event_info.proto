@@ -36,7 +36,13 @@ message Trap {
 
 enum ModeSwitch {
     USER = 0;
-    SYSTEM = 1;
+    SUPERVISOR = 1;
+    HYPERVISOR = 2;
+    DEBUG = 3;
+    ARCHSPECIFIC_1 = 4;
+    ARCHSPECIFIC_2 = 5;
+    ARCHSPECIFIC_3 = 6;
+    ARCHSPECIFIC_4 = 7;
 }
 
 message RegInfo {
