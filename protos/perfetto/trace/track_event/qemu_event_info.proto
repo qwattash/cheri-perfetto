@@ -84,8 +84,8 @@ message QEMUInstruction {
 // Histograms can associate a single value or an interval to buckets
 // (e.g. a memory range or a sample value).
 message HistogramBucket {
-    required int64 interval_start = 1;
-    required int64 interval_end = 2;
+    required uint64 start = 1;
+    optional uint64 end = 2;
     required int64 value = 3;
 }
 
@@ -93,10 +93,5 @@ message HistogramBucket {
 // of the trace buffer it gets very wrong. Probably we need to emit the samples as separate
 // trace packets?
 message StatsHistogram {
-    enum StatsType {
-        BB_HIT = 0;
-        CALL_HIT = 1;
-    }
-    required StatsType type = 1;
-    repeated HistogramBucket buckets = 2;
+    repeated HistogramBucket bucket = 1;
 }

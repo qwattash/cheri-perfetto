@@ -18,11 +18,11 @@
 #if !defined(PERFETTO_IMPLEMENTATION)
 #define PERFETTO_IMPLEMENTATION
 #endif
-#if !defined(GOOGLE_PROTOBUF_NO_RTTI)
-#define GOOGLE_PROTOBUF_NO_RTTI
-#endif
 #if !defined(GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER)
 #define GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+#endif
+#if !defined(GOOGLE_PROTOBUF_NO_RTTI)
+#define GOOGLE_PROTOBUF_NO_RTTI
 #endif
 #include "perfetto.h"
 // gen_amalgamated begin source: src/base/ctrl_c_handler.cc
@@ -5706,8 +5706,8 @@ const char* GetVersionString();
 #ifndef GEN_PERFETTO_VERSION_GEN_H_
 #define GEN_PERFETTO_VERSION_GEN_H_
 
-#define PERFETTO_VERSION_STRING() "v19.0-cd4ab2039"
-#define PERFETTO_VERSION_SCM_REVISION() "cd4ab2039d492fff97a84d041f64ef80a7c015a6"
+#define PERFETTO_VERSION_STRING() "v19.0-149a270f0"
+#define PERFETTO_VERSION_SCM_REVISION() "149a270f0413d7f053241b0d733f0a9a7239aa87"
 
 #endif  // GEN_PERFETTO_VERSION_GEN_H_
 /*
@@ -30002,7 +30002,6 @@ class RegInfo;
 class Trap;
 class QEMUEventInfo;
 enum ModeSwitch : int;
-enum StatsHistogram_StatsType : int;
 enum MemInfo_MemOp : int;
 enum Trap_TrapType : int;
 }  // namespace perfetto
@@ -30026,10 +30025,6 @@ enum ModeSwitch : int {
   ARCHSPECIFIC_3 = 6,
   ARCHSPECIFIC_4 = 7,
 };
-enum StatsHistogram_StatsType : int {
-  StatsHistogram_StatsType_BB_HIT = 0,
-  StatsHistogram_StatsType_CALL_HIT = 1,
-};
 enum MemInfo_MemOp : int {
   MemInfo_MemOp_LOAD = 0,
   MemInfo_MemOp_STORE = 1,
@@ -30043,14 +30038,8 @@ enum Trap_TrapType : int {
 
 class PERFETTO_EXPORT StatsHistogram : public ::protozero::CppMessageObj {
  public:
-  using StatsType = StatsHistogram_StatsType;
-  static constexpr auto BB_HIT = StatsHistogram_StatsType_BB_HIT;
-  static constexpr auto CALL_HIT = StatsHistogram_StatsType_CALL_HIT;
-  static constexpr auto StatsType_MIN = StatsHistogram_StatsType_BB_HIT;
-  static constexpr auto StatsType_MAX = StatsHistogram_StatsType_CALL_HIT;
   enum FieldNumbers {
-    kTypeFieldNumber = 1,
-    kBucketsFieldNumber = 2,
+    kBucketFieldNumber = 1,
   };
 
   StatsHistogram();
@@ -30067,33 +30056,28 @@ class PERFETTO_EXPORT StatsHistogram : public ::protozero::CppMessageObj {
   std::vector<uint8_t> SerializeAsArray() const override;
   void Serialize(::protozero::Message*) const;
 
-  bool has_type() const { return _has_field_[1]; }
-  StatsHistogram_StatsType type() const { return type_; }
-  void set_type(StatsHistogram_StatsType value) { type_ = value; _has_field_.set(1); }
-
-  const std::vector<HistogramBucket>& buckets() const { return buckets_; }
-  std::vector<HistogramBucket>* mutable_buckets() { return &buckets_; }
-  int buckets_size() const;
-  void clear_buckets();
-  HistogramBucket* add_buckets();
+  const std::vector<HistogramBucket>& bucket() const { return bucket_; }
+  std::vector<HistogramBucket>* mutable_bucket() { return &bucket_; }
+  int bucket_size() const;
+  void clear_bucket();
+  HistogramBucket* add_bucket();
 
  private:
-  StatsHistogram_StatsType type_{};
-  std::vector<HistogramBucket> buckets_;
+  std::vector<HistogramBucket> bucket_;
 
   // Allows to preserve unknown protobuf fields for compatibility
   // with future versions of .proto files.
   std::string unknown_fields_;
 
-  std::bitset<3> _has_field_{};
+  std::bitset<2> _has_field_{};
 };
 
 
 class PERFETTO_EXPORT HistogramBucket : public ::protozero::CppMessageObj {
  public:
   enum FieldNumbers {
-    kIntervalStartFieldNumber = 1,
-    kIntervalEndFieldNumber = 2,
+    kStartFieldNumber = 1,
+    kEndFieldNumber = 2,
     kValueFieldNumber = 3,
   };
 
@@ -30111,21 +30095,21 @@ class PERFETTO_EXPORT HistogramBucket : public ::protozero::CppMessageObj {
   std::vector<uint8_t> SerializeAsArray() const override;
   void Serialize(::protozero::Message*) const;
 
-  bool has_interval_start() const { return _has_field_[1]; }
-  int64_t interval_start() const { return interval_start_; }
-  void set_interval_start(int64_t value) { interval_start_ = value; _has_field_.set(1); }
+  bool has_start() const { return _has_field_[1]; }
+  uint64_t start() const { return start_; }
+  void set_start(uint64_t value) { start_ = value; _has_field_.set(1); }
 
-  bool has_interval_end() const { return _has_field_[2]; }
-  int64_t interval_end() const { return interval_end_; }
-  void set_interval_end(int64_t value) { interval_end_ = value; _has_field_.set(2); }
+  bool has_end() const { return _has_field_[2]; }
+  uint64_t end() const { return end_; }
+  void set_end(uint64_t value) { end_ = value; _has_field_.set(2); }
 
   bool has_value() const { return _has_field_[3]; }
   int64_t value() const { return value_; }
   void set_value(int64_t value) { value_ = value; _has_field_.set(3); }
 
  private:
-  int64_t interval_start_{};
-  int64_t interval_end_{};
+  uint64_t start_{};
+  uint64_t end_{};
   int64_t value_{};
 
   // Allows to preserve unknown protobuf fields for compatibility
@@ -30510,15 +30494,14 @@ StatsHistogram& StatsHistogram::operator=(StatsHistogram&&) = default;
 
 bool StatsHistogram::operator==(const StatsHistogram& other) const {
   return unknown_fields_ == other.unknown_fields_
-   && type_ == other.type_
-   && buckets_ == other.buckets_;
+   && bucket_ == other.bucket_;
 }
 
-int StatsHistogram::buckets_size() const { return static_cast<int>(buckets_.size()); }
-void StatsHistogram::clear_buckets() { buckets_.clear(); }
-HistogramBucket* StatsHistogram::add_buckets() { buckets_.emplace_back(); return &buckets_.back(); }
+int StatsHistogram::bucket_size() const { return static_cast<int>(bucket_.size()); }
+void StatsHistogram::clear_bucket() { bucket_.clear(); }
+HistogramBucket* StatsHistogram::add_bucket() { bucket_.emplace_back(); return &bucket_.back(); }
 bool StatsHistogram::ParseFromArray(const void* raw, size_t size) {
-  buckets_.clear();
+  bucket_.clear();
   unknown_fields_.clear();
   bool packed_error = false;
 
@@ -30528,12 +30511,9 @@ bool StatsHistogram::ParseFromArray(const void* raw, size_t size) {
       _has_field_.set(field.id());
     }
     switch (field.id()) {
-      case 1 /* type */:
-        field.get(&type_);
-        break;
-      case 2 /* buckets */:
-        buckets_.emplace_back();
-        buckets_.back().ParseFromArray(field.data(), field.size());
+      case 1 /* bucket */:
+        bucket_.emplace_back();
+        bucket_.back().ParseFromArray(field.data(), field.size());
         break;
       default:
         field.SerializeAndAppendTo(&unknown_fields_);
@@ -30556,14 +30536,9 @@ std::vector<uint8_t> StatsHistogram::SerializeAsArray() const {
 }
 
 void StatsHistogram::Serialize(::protozero::Message* msg) const {
-  // Field 1: type
-  if (_has_field_[1]) {
-    msg->AppendVarInt(1, type_);
-  }
-
-  // Field 2: buckets
-  for (auto& it : buckets_) {
-    it.Serialize(msg->BeginNestedMessage<::protozero::Message>(2));
+  // Field 1: bucket
+  for (auto& it : bucket_) {
+    it.Serialize(msg->BeginNestedMessage<::protozero::Message>(1));
   }
 
   msg->AppendRawProtoBytes(unknown_fields_.data(), unknown_fields_.size());
@@ -30579,8 +30554,8 @@ HistogramBucket& HistogramBucket::operator=(HistogramBucket&&) = default;
 
 bool HistogramBucket::operator==(const HistogramBucket& other) const {
   return unknown_fields_ == other.unknown_fields_
-   && interval_start_ == other.interval_start_
-   && interval_end_ == other.interval_end_
+   && start_ == other.start_
+   && end_ == other.end_
    && value_ == other.value_;
 }
 
@@ -30594,11 +30569,11 @@ bool HistogramBucket::ParseFromArray(const void* raw, size_t size) {
       _has_field_.set(field.id());
     }
     switch (field.id()) {
-      case 1 /* interval_start */:
-        field.get(&interval_start_);
+      case 1 /* start */:
+        field.get(&start_);
         break;
-      case 2 /* interval_end */:
-        field.get(&interval_end_);
+      case 2 /* end */:
+        field.get(&end_);
         break;
       case 3 /* value */:
         field.get(&value_);
@@ -30624,14 +30599,14 @@ std::vector<uint8_t> HistogramBucket::SerializeAsArray() const {
 }
 
 void HistogramBucket::Serialize(::protozero::Message* msg) const {
-  // Field 1: interval_start
+  // Field 1: start
   if (_has_field_[1]) {
-    msg->AppendVarInt(1, interval_start_);
+    msg->AppendVarInt(1, start_);
   }
 
-  // Field 2: interval_end
+  // Field 2: end
   if (_has_field_[2]) {
-    msg->AppendVarInt(2, interval_end_);
+    msg->AppendVarInt(2, end_);
   }
 
   // Field 3: value
@@ -31909,7 +31884,6 @@ class DebugAnnotation_NestedValue;
 enum TrackEvent_Type : int;
 enum TrackEvent_LegacyEvent_FlowDirection : int;
 enum TrackEvent_LegacyEvent_InstantEventScope : int;
-enum StatsHistogram_StatsType : int;
 enum ModeSwitch : int;
 enum MemInfo_MemOp : int;
 enum Trap_TrapType : int;
