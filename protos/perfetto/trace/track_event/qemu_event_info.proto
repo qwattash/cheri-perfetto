@@ -76,7 +76,7 @@ message QEMUInstruction {
     optional uint64 pc = 2;
     optional Trap trap = 3;
     optional ModeSwitch mode = 4;
-    repeated RegInfo regs = 5;
+    repeated RegInfo reg = 5;
     repeated MemInfo mem = 6;
 }
 
