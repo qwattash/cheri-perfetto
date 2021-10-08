@@ -35,6 +35,7 @@
 #include "protos/perfetto/trace/track_event/counter_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/process_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/thread_descriptor.pbzero.h"
+#include "protos/perfetto/trace/track_event/qemu_context_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
 
@@ -145,6 +146,11 @@ ModuleResult TrackEventTokenizer::TokenizeTrackDescriptorPacket(
         track.uuid(), track.parent_uuid(), name_id, category_id,
         counter.unit_multiplier(), counter.is_incremental(),
         packet.trusted_packet_sequence_id());
+  } else if (track.has_qemu_context()) {
+      protos::pbzero::QEMUContextDescriptor::Decoder qemu_ctx(track.qemu_context());
+      // TODO(amazzinghi): Handle qemu context checks
+      track_event_tracker_->ReserveDescriptorChildTrack(
+          track.uuid(), track.parent_uuid(), name_id);
   } else {
     track_event_tracker_->ReserveDescriptorChildTrack(
         track.uuid(), track.parent_uuid(), name_id);

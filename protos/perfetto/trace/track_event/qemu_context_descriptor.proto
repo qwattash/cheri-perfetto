@@ -1,0 +1,18 @@
+
+syntax = "proto2";
+
+package perfetto.protos;
+
+// Defines a flat ID space where and identifier is an unique tuple (pid, tid, cid).
+// Generally threads will be grouped by process ID but many threads run in the same
+// compartment at the same time and the compartment is allowed to be shared among
+// process IDs, depending on the CHERI compartmentalization architecture.
+// We do not impose any structure here.
+message QEMUContextDescriptor {
+    // Process ID
+    optional uint64 pid = 1;
+    // Thread ID
+    optional uint64 tid = 2;
+    // Compartment ID
+    optional uint64 cid = 3;
+}
