@@ -18,11 +18,11 @@
 #if !defined(PERFETTO_IMPLEMENTATION)
 #define PERFETTO_IMPLEMENTATION
 #endif
-#if !defined(GOOGLE_PROTOBUF_NO_RTTI)
-#define GOOGLE_PROTOBUF_NO_RTTI
-#endif
 #if !defined(GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER)
 #define GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER
+#endif
+#if !defined(GOOGLE_PROTOBUF_NO_RTTI)
+#define GOOGLE_PROTOBUF_NO_RTTI
 #endif
 #include "perfetto.h"
 // gen_amalgamated begin source: src/base/ctrl_c_handler.cc
@@ -5706,8 +5706,8 @@ const char* GetVersionString();
 #ifndef GEN_PERFETTO_VERSION_GEN_H_
 #define GEN_PERFETTO_VERSION_GEN_H_
 
-#define PERFETTO_VERSION_STRING() "v19.0-9109268d2"
-#define PERFETTO_VERSION_SCM_REVISION() "9109268d2ca0b7e85fb7905214522ea554b7a089"
+#define PERFETTO_VERSION_STRING() "v19.0-0b9cc5d51"
+#define PERFETTO_VERSION_SCM_REVISION() "0b9cc5d51829f17766bd847d8e63a0c67fc5d089"
 
 #endif  // GEN_PERFETTO_VERSION_GEN_H_
 /*

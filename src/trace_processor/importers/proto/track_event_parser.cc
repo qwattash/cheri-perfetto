@@ -51,6 +51,7 @@
 #include "protos/perfetto/trace/track_event/thread_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
+#include "protos/perfetto/trace/track_event/qemu_context_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/qemu_event_info.pbzero.h"
 
 namespace perfetto {
@@ -1428,6 +1429,8 @@ void TrackEventParser::ParseTrackDescriptor(
       ParseChromeProcessDescriptor(upid, decoder.chrome_process());
   } else if (decoder.has_counter()) {
     ParseCounterDescriptor(track_id, decoder.counter());
+  } else if (decoder.has_qemu_context()) {
+    ParseQEMUContextDescriptor(decoder.qemu_context());
   }
 
   // Override the name with the most recent name seen (after sorting by ts).
@@ -1515,6 +1518,20 @@ void TrackEventParser::ParseChromeThreadDescriptor(
   StringId name_id = chrome_string_lookup_.GetThreadName(decoder.thread_type());
   context_->process_tracker->UpdateThreadNameByUtid(
       utid, name_id, ThreadNamePriority::kTrackDescriptorThreadType);
+}
+
+void TrackEventParser::ParseQEMUContextDescriptor(
+    protozero::ConstBytes qemu_ctx_descriptor) {
+  protos::pbzero::QEMUContextDescriptor::Decoder decoder(qemu_ctx_descriptor);
+  // TODO(amazzinghi): We *could* just reuse the process/thread tracks for the remote
+  // qemu PID/TID, however I need to make sure that we do not confuse local vs remote
+  // processes and threads.
+  context_->process_tracker->GetOrCreateProcess(
+      static_cast<uint32_t>(decoder.pid()));
+  context_->process_tracker->UpdateThread(
+      static_cast<uint32_t>(decoder.tid()),
+      static_cast<uint32_t>(decoder.pid()));
+  // TODO(amazzinghi): Handle compartments in the process tracker
 }
 
 void TrackEventParser::ParseCounterDescriptor(

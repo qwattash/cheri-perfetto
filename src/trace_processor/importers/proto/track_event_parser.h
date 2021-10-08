@@ -57,6 +57,7 @@ class TrackEventParser {
   void ParseTrackDescriptor(protozero::ConstBytes);
   UniquePid ParseProcessDescriptor(protozero::ConstBytes);
   UniqueTid ParseThreadDescriptor(protozero::ConstBytes);
+  void ParseQEMUContextDescriptor(protozero::ConstBytes);
 
   void ParseTrackEvent(int64_t ts,
                        TrackEventData* event_data,
