@@ -12,6 +12,7 @@ message QEMUEventInfo {
         // First 15 indices are reserved for high-frequency data
         // Stats histogram samples
         StatsHistogram histogram = 16;
+        uint64 marker = 17;
     }
 }
 
