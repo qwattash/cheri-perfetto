@@ -1,0 +1,148 @@
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// Copyright (c) 2021 Alfredo Mazzinghi
+//
+// This software was developed by SRI International and the University of
+// Cambridge Computer Laboratory (Department of Computer Science and
+// Technology) under DARPA contract HR0011-18-C-0016 ("ECATS"), as part of the
+// DARPA SSITH research programme.
+// 
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+// OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+// SUCH DAMAGE.
+
+syntax = "proto3";
+
+package perfetto.protos;
+
+enum QEMULogEntryExcType {
+  TRAP = 0;
+  INTR = 1;
+}
+
+/* Values must be kept in sync with log_event_trace_state_t */
+enum QEMULogEventTraceState {
+  START = 0;
+  STOP = 1;
+  FLUSH = 2;
+}
+
+/* Values must be kept in sync with log_event_ctx_update_op_t */
+enum QEMULogEventCtxUpdateOp {
+  LOG_EVENT_CTX_OP_SWITCH = 0;
+  LOG_EVENT_CTX_OP_SETUP = 1;
+}
+
+/* Values must be kept in sync with qemu_log_instr_cpu_mode_t */
+enum QEMULogEntryModeSwitch {
+  USER = 0;
+  SUPERVISOR = 1;
+  HYPERVISOR = 2;
+  DEBUG = 3;
+  ARCHSPECIFIC_1 = 4;
+  ARCHSPECIFIC_2 = 5;
+  ARCHSPECIFIC_3 = 6;
+  ARCHSPECIFIC_4 = 7;
+}
+
+message QEMULogEntryCapability {
+  bool valid = 1;
+  bool sealed = 2;
+  uint32 perms = 3;
+  uint32 otype = 4;
+  uint64 cap_base = 5;
+  uint64 cap_cursor = 6;
+  uint64 cap_length = 7;
+}
+
+message QEMULogEntryMem {
+
+  enum MemOp {
+    LOAD = 0;
+    STORE = 1;
+    CLOAD = 2;
+    CSTORE = 3;
+  }
+
+  bool is_load = 1;
+  int32 size = 2;
+  fixed64 addr = 3;
+  MemOp op = 7;
+  oneof value {
+    QEMULogEntryCapability cap_value = 4;
+    double fp_value = 5;
+    fixed64 int_value = 6;
+  }
+}
+
+message QEMULogEntryReg {
+  string name = 1;
+  oneof value {
+    fixed64 int_value = 2;
+    double fp_value = 3;
+    QEMULogEntryCapability cap_value = 4;
+  }
+}
+
+message QEMULogEntryEvtTraceState {
+  QEMULogEventTraceState next_state = 1;
+  fixed64 pc = 2;
+}
+
+message QEMULogEntryEvtCtxUpdate {
+  QEMULogEventCtxUpdateOp op = 1;
+  uint64 pid = 2;
+  uint64 tid = 3;
+  uint64 cid = 4;
+  string mode = 5;
+}
+
+message QEMULogEntryEvt {
+  oneof event {
+    QEMULogEntryEvtTraceState state = 1;
+    QEMULogEntryEvtCtxUpdate ctx_update = 2;
+    uint64 marker = 3;
+  }
+}
+
+message QEMULogEntryExc {
+  QEMULogEntryExcType type = 1;
+  fixed64 vector = 2;
+  int32 code = 3;
+  fixed64 faultaddr = 4;
+}
+
+message QEMULogEntry {
+  fixed64 pc = 1;
+  oneof insn {
+    string disas = 2;
+    bytes opcode = 3;
+  }
+  int32 cpu = 4;
+  int32 asid = 5;
+  oneof mode {
+    string mode_name = 6;
+    QEMULogEntryModeSwitch mode_code = 7;
+  }
+  QEMULogEntryExc exception = 8;
+  repeated QEMULogEntryMem mem = 9;
+  repeated QEMULogEntryReg reg = 10;
+  repeated QEMULogEntryEvt evt = 11;
+}

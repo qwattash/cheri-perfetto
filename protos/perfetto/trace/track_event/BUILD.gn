@@ -35,13 +35,14 @@ perfetto_proto_library("@TYPE@") {
     "debug_annotation.proto",
     "log_message.proto",
     "process_descriptor.proto",
+    "qemu_log_entry.proto",
     "qemu_event_info.proto",
     "source_location.proto",
     "task_execution.proto",
     "thread_descriptor.proto",
+    "qemu_context_descriptor.proto",
     "track_descriptor.proto",
     "track_event.proto",
-    "qemu_context_descriptor.proto",
   ]
 }
 

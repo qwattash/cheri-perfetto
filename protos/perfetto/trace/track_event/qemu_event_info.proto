@@ -1,6 +1,36 @@
-// Copyright (C) 2021 Alfredo Mazzinghi
+// SPDX-License-Identifier: BSD-2-Clause
+//
+// Copyright (c) 2021 Alfredo Mazzinghi
+//
+// This software was developed by SRI International and the University of
+// Cambridge Computer Laboratory (Department of Computer Science and
+// Technology) under DARPA contract HR0011-18-C-0016 ("ECATS"), as part of the
+// DARPA SSITH research programme.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+// ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+// ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+// FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+// DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+// OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+// HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+// OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+// SUCH DAMAGE.
 
 syntax = "proto2";
+
+import "protos/perfetto/trace/track_event/qemu_log_entry.proto";
 
 package perfetto.protos;
 
@@ -8,77 +38,12 @@ package perfetto.protos;
 message QEMUEventInfo {
     oneof data {
         // Executed instruction info
-        QEMUInstruction instr = 1;
+        QEMULogEntry instr = 1;
         // First 15 indices are reserved for high-frequency data
         // Stats histogram samples
         StatsHistogram histogram = 16;
         uint64 marker = 17;
     }
-}
-
-message Capability {
-    optional bool valid = 1;
-    optional bool sealed = 2;
-    optional uint32 perms = 3;
-    optional uint32 otype = 4;
-    optional uint64 base = 5;
-    optional uint64 cursor = 6;
-    optional uint64 length = 7;
-}
-
-message Trap {
-    enum TrapType {
-        EXCEPTION = 0;
-        INTERRUPT = 1;
-    }
-    required TrapType type = 1;
-    required uint32 trap_number = 2;
-}
-
-enum ModeSwitch {
-    USER = 0;
-    SUPERVISOR = 1;
-    HYPERVISOR = 2;
-    DEBUG = 3;
-    ARCHSPECIFIC_1 = 4;
-    ARCHSPECIFIC_2 = 5;
-    ARCHSPECIFIC_3 = 6;
-    ARCHSPECIFIC_4 = 7;
-}
-
-message RegInfo {
-    required string name = 1;
-    oneof value {
-        uint64 int_val = 2;
-        double fp_val = 3;
-        Capability cap_val = 4;
-    }
-}
-
-message MemInfo {
-    enum MemOp {
-        LOAD = 0;
-        STORE = 1;
-        CLOAD = 2;
-        CSTORE = 3;
-    }
-    required uint64 addr = 1;
-    required MemOp op = 2;
-    oneof value {
-        uint64 int_val = 3;
-        double fp_val = 4;
-        Capability cap_val = 5;
-    }
-}
-
-message QEMUInstruction {
-    // TODO(amazzinghi): This should be a bytes field but it is not yet supported.
-    optional string opcode = 1;
-    optional uint64 pc = 2;
-    optional Trap trap = 3;
-    optional ModeSwitch mode = 4;
-    repeated RegInfo reg = 5;
-    repeated MemInfo mem = 6;
 }
 
 // QEMU statistics reporting
