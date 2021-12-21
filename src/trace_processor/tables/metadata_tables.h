@@ -97,6 +97,25 @@ PERFETTO_TP_TABLE(PERFETTO_TP_THREAD_TABLE_DEF);
 
 PERFETTO_TP_TABLE(PERFETTO_TP_PROCESS_TABLE_DEF);
 
+// @name compartment
+// @param ucid {uint32_t} Unique CHERI compartment id. This is != the OS or
+//        Hardware compartment id. This is a monotonic number associated
+//        to each CHERI context. We assume that OS/HW compartment IDs may
+//        be recycled.
+// @param cid The compartment ID
+// @param el The exception level, if relevant to the traced system
+#define PERFETTO_TP_COMPARTMENT_TABLE_DEF(NAME, PARENT, C)  \
+  NAME(CompartmentTable, "internal_compartment")            \
+  PERFETTO_TP_ROOT_TABLE(PARENT, C)                         \
+  C(uint64_t, cid)                                          \
+  C(base::Optional<uint32_t>, el)                           \
+  C(base::Optional<int64_t>, start_ts)                      \
+  C(base::Optional<int64_t>, end_ts)                        \
+  C(StringPool::Id, name)                                   \
+  C(uint32_t, arg_set_id)
+
+PERFETTO_TP_TABLE(PERFETTO_TP_COMPARTMENT_TABLE_DEF);
+
 #define PERFETTO_TP_CPU_TABLE_DEF(NAME, PARENT, C) \
   NAME(CpuTable, "cpu")                            \
   PERFETTO_TP_ROOT_TABLE(PARENT, C)                \

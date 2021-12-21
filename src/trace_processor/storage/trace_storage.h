@@ -58,6 +58,11 @@ using UniquePid = uint32_t;
 // be reused.
 using UniqueTid = uint32_t;
 
+// UniqueCid is an offset into |unique_compartments_|. This is necessary
+// because CHERI Compartment IDs may be reused and thus not
+// guaranteed to be unique over a long period of time.
+using UniqueCid = uint32_t;
+
 // StringId is an offset into |string_pool_|.
 using StringId = StringPool::Id;
 static const StringId kNullStringId = StringId::Null();
@@ -307,6 +312,13 @@ class TraceStorage {
   const tables::ProcessTable& process_table() const { return process_table_; }
   tables::ProcessTable* mutable_process_table() { return &process_table_; }
 
+  const tables::CompartmentTable& compartment_table() const {
+    return compartment_table_;
+  }
+  tables::CompartmentTable* mutable_compartment_table() {
+    return &compartment_table_;
+  }
+
   const tables::TrackTable& track_table() const { return track_table_; }
   tables::TrackTable* mutable_track_table() { return &track_table_; }
 
@@ -322,6 +334,13 @@ class TraceStorage {
   }
   tables::ThreadTrackTable* mutable_thread_track_table() {
     return &thread_track_table_;
+  }
+
+  const tables::CHERIContextTrackTable& cheri_context_track_table() const {
+    return cheri_context_track_table_;
+  }
+  tables::CHERIContextTrackTable* mutable_cheri_context_track_table() {
+    return &cheri_context_track_table_;
   }
 
   const tables::CounterTrackTable& counter_track_table() const {
@@ -734,6 +753,7 @@ class TraceStorage {
   tables::GpuTrackTable gpu_track_table_{&string_pool_, &track_table_};
   tables::ProcessTrackTable process_track_table_{&string_pool_, &track_table_};
   tables::ThreadTrackTable thread_track_table_{&string_pool_, &track_table_};
+  tables::CHERIContextTrackTable cheri_context_track_table_{&string_pool_, &track_table_};
 
   // Track tables for counter events.
   tables::CounterTrackTable counter_track_table_{&string_pool_, &track_table_};
@@ -759,6 +779,7 @@ class TraceStorage {
   // Information about all the threads and processes in the trace.
   tables::ThreadTable thread_table_{&string_pool_, nullptr};
   tables::ProcessTable process_table_{&string_pool_, nullptr};
+  tables::CompartmentTable compartment_table_{&string_pool_, nullptr};
 
   // Slices coming from userspace events (e.g. Chromium TRACE_EVENT macros).
   tables::SliceTable slice_table_{&string_pool_, nullptr};

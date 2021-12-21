@@ -100,6 +100,37 @@ void TrackEventTracker::ReserveDescriptorThreadTrack(uint64_t uuid,
   it->second.min_timestamp = std::min(it->second.min_timestamp, timestamp);
 }
 
+void TrackEventTracker::ReserveDescriptorCHERIContextTrack(uint64_t uuid,
+                                                           uint64_t parent_uuid,
+                                                           StringId name,
+                                                           CHERIContextId ccid,
+                                                           int64_t timestamp)
+{
+  DescriptorTrackReservation reservation;
+  reservation.min_timestamp = timestamp;
+  reservation.parent_uuid = parent_uuid;
+  reservation.cheri_context = ccid;
+  reservation.name = name;
+
+  std::map<uint64_t, DescriptorTrackReservation>::iterator it;
+  bool inserted;
+  std::tie(it, inserted) =
+      reserved_descriptor_tracks_.insert(std::make_pair<>(uuid, reservation));
+
+  if (inserted)
+    return;
+
+  if (!it->second.IsForSameTrack(reservation)) {
+    // A track should not be assigned to a different QEMU context identifier
+    PERFETTO_DLOG("New track reservation for QEMU context track with uuid %"
+                  PRIu64 " doesn't match earlier one", uuid);
+    context_->storage->IncrementStats(stats::track_event_tokenizer_errors);
+    return;
+  }
+
+  it->second.min_timestamp = std::min(it->second.min_timestamp, timestamp);
+}
+
 void TrackEventTracker::ReserveDescriptorCounterTrack(
     uint64_t uuid,
     uint64_t parent_uuid,
@@ -231,6 +262,9 @@ TrackId TrackEventTracker::CreateTrackFromResolved(
         return context_->track_tracker->InternThreadTrack(track.utid());
       case ResolvedDescriptorTrack::Scope::kProcess:
         return context_->track_tracker->InternProcessTrack(track.upid());
+      case ResolvedDescriptorTrack::Scope::kCHERI:
+        return context_->track_tracker->InternCHERIContextTrack(
+            track.upid(), track.utid(), track.ucid());
       case ResolvedDescriptorTrack::Scope::kGlobal:
         // Will be handled below.
         break;
@@ -269,6 +303,19 @@ TrackId TrackEventTracker::CreateTrackFromResolved(
 
       auto* process_tracks = context_->storage->mutable_process_track_table();
       return process_tracks->Insert(row).id;
+    }
+    case ResolvedDescriptorTrack::Scope::kCHERI: {
+      if (track.is_counter()) {
+        // TODO(amazzinghi): handle counter case
+      }
+
+      tables::CHERIContextTrackTable::Row row;
+      row.upid = track.upid();
+      row.utid = track.utid();
+      row.ucid = track.ucid();
+
+      auto* cheri_tracks = context_->storage->mutable_cheri_context_track_table();
+      return cheri_tracks->Insert(row).id;
     }
     case ResolvedDescriptorTrack::Scope::kGlobal: {
       if (track.is_counter())
@@ -340,6 +387,24 @@ TrackEventTracker::ResolveDescriptorTrackImpl(
     descendent_uuids->pop_back();
     if (owned_descendent_uuids)
       descendent_uuids = nullptr;
+  }
+
+  if (reservation.cheri_context) {
+    auto cheri_context = *reservation.cheri_context;
+    UniquePid upid = context_->process_tracker->GetOrCreateProcess(
+        static_cast<uint32_t>(cheri_context.pid));
+    UniqueTid utid = context_->process_tracker->UpdateThread(
+        static_cast<uint32_t>(cheri_context.tid),
+        static_cast<uint32_t>(cheri_context.pid));
+    // TODO(amazzinghi): do I need to StartNewProcess() and StartNewThread()
+    UniqueCid ucid = context_->process_tracker->GetOrCreateCompartment(
+        cheri_context.compartment_id());
+
+    // TODO(amazzinghi): do I need to implement reuse and lookup table?
+    return ResolvedDescriptorTrack::CHERIContext(upid, utid, ucid,
+                                                 false /* is_counter */,
+                                                 true /* is_root */);
+
   }
 
   if (reservation.tid) {
@@ -414,6 +479,15 @@ TrackEventTracker::ResolveDescriptorTrackImpl(
         return ResolvedDescriptorTrack::Process(parent_resolved_track->upid(),
                                                 reservation.is_counter,
                                                 false /* is_root*/);
+      case ResolvedDescriptorTrack::Scope::kCHERI:
+        // If parent is a CHERI context track, create another track associated
+        // to a CHERI context.
+        break;
+        // TODO(amazzinghi): Mirror the other tracks behaviour
+        // return ResolvedDescriptorTrack::CHERIContext(
+        //     parent_resolved_track->upid(), parent_resolved_track->utid(),
+        //     parent_resolved_track->ucid(), reservation.is_counter,
+        //     false /* is_root */);
       case ResolvedDescriptorTrack::Scope::kGlobal:
         break;
     }
@@ -535,6 +609,22 @@ TrackEventTracker::ResolvedDescriptorTrack::Thread(UniqueTid utid,
   track.is_counter_ = is_counter;
   track.is_root_in_scope_ = is_root;
   track.utid_ = utid;
+  return track;
+}
+
+TrackEventTracker::ResolvedDescriptorTrack
+TrackEventTracker::ResolvedDescriptorTrack::CHERIContext(UniquePid upid,
+                                                         UniqueTid utid,
+                                                         UniqueCid ucid,
+                                                         bool is_counter,
+                                                         bool is_root) {
+  ResolvedDescriptorTrack track;
+  track.scope_ = Scope::kCHERI;
+  track.is_counter_ = is_counter;
+  track.is_root_in_scope_ = is_root;
+  track.upid_ = upid;
+  track.utid_ = utid;
+  track.ucid_ = ucid;
   return track;
 }
 

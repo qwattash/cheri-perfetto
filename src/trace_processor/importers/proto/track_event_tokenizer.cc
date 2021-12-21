@@ -26,6 +26,7 @@
 #include "src/trace_processor/storage/stats.h"
 #include "src/trace_processor/storage/trace_storage.h"
 #include "src/trace_processor/trace_sorter.h"
+#include "src/trace_processor/types/cheri.h"
 #include "src/trace_processor/util/trace_blob_view.h"
 
 #include "protos/perfetto/common/builtin_clock.pbzero.h"
@@ -35,7 +36,7 @@
 #include "protos/perfetto/trace/track_event/counter_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/process_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/thread_descriptor.pbzero.h"
-#include "protos/perfetto/trace/track_event/qemu_context_descriptor.pbzero.h"
+#include "protos/perfetto/trace/track_event/cheri_context_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
 
@@ -146,11 +147,26 @@ ModuleResult TrackEventTokenizer::TokenizeTrackDescriptorPacket(
         track.uuid(), track.parent_uuid(), name_id, category_id,
         counter.unit_multiplier(), counter.is_incremental(),
         packet.trusted_packet_sequence_id());
-  } else if (track.has_qemu_context()) {
-      protos::pbzero::QEMUContextDescriptor::Decoder qemu_ctx(track.qemu_context());
-      // TODO(amazzinghi): Handle qemu context checks
-      track_event_tracker_->ReserveDescriptorChildTrack(
-          track.uuid(), track.parent_uuid(), name_id);
+  } else if (track.has_cheri_context()) {
+      protos::pbzero::CHERIContextDescriptor::Decoder cheri_ctx(track.cheri_context());
+
+      if (!cheri_ctx.has_pid() || !cheri_ctx.has_tid() || !cheri_ctx.has_cid() || !cheri_ctx.has_el()) {
+        PERFETTO_ELOG(
+            "No pid, tid, cid or EL in CHERIContextDescriptor for track with uuid %" PRIu64,
+            track.uuid());
+        context_->storage->IncrementStats(stats::track_event_tokenizer_errors);
+        return ModuleResult::Handled();
+      }
+      // TODO(amazzinghi): Currently we do not set any information in the incremental state
+      // Arguably we should set pid/tid information but it is not clear how this would work
+      // for the CHERI contexts.
+      CHERIContextId ccid;
+      ccid.pid = cheri_ctx.pid();
+      ccid.tid = cheri_ctx.tid();
+      ccid.cid = cheri_ctx.cid();
+      ccid.el = cheri_ctx.el();
+      track_event_tracker_->ReserveDescriptorCHERIContextTrack(
+          track.uuid(), track.parent_uuid(), name_id, ccid, packet_timestamp);
   } else {
     track_event_tracker_->ReserveDescriptorChildTrack(
         track.uuid(), track.parent_uuid(), name_id);

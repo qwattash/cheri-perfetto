@@ -217,6 +217,7 @@ class Column {
       // based on that type.
       case ColumnType::kInt32:
       case ColumnType::kUint32:
+      case ColumnType::kUint64:
       case ColumnType::kInt64:
       case ColumnType::kDouble:
       case ColumnType::kString: {
@@ -247,6 +248,11 @@ class Column {
       case ColumnType::kUint32: {
         mutable_nullable_vector<uint32_t>()->Set(
             row, static_cast<uint32_t>(value.long_value));
+        break;
+      }
+      case ColumnType::kUint64: {
+        mutable_nullable_vector<uint64_t>()->Set(
+            row, static_cast<uint64_t>(value.long_value));
         break;
       }
       case ColumnType::kInt64: {
@@ -429,6 +435,7 @@ class Column {
     kInt32,
     kUint32,
     kInt64,
+    kUint64,
     kDouble,
     kString,
 
@@ -461,6 +468,11 @@ class Column {
       case ColumnType::kUint32: {
         auto opt_value = nullable_vector<uint32_t>().Get(idx);
         return opt_value ? SqlValue::Long(*opt_value) : SqlValue();
+      }
+      case ColumnType::kUint64: {
+        auto opt_value = nullable_vector<uint64_t>().Get(idx);
+        return opt_value ? SqlValue::Long(static_cast<int64_t>(*opt_value)) :
+            SqlValue();
       }
       case ColumnType::kInt64: {
         auto opt_value = nullable_vector<int64_t>().Get(idx);
@@ -562,6 +574,8 @@ class Column {
   static ColumnType ToColumnType() {
     if (std::is_same<T, uint32_t>::value) {
       return ColumnType::kUint32;
+    } else if (std::is_same<T, uint64_t>::value) {
+      return ColumnType::kUint64;
     } else if (std::is_same<T, int64_t>::value) {
       return ColumnType::kInt64;
     } else if (std::is_same<T, int32_t>::value) {
@@ -580,6 +594,7 @@ class Column {
       case ColumnType::kInt32:
       case ColumnType::kUint32:
       case ColumnType::kInt64:
+      case ColumnType::kUint64:
       case ColumnType::kId:
         return SqlValue::Type::kLong;
       case ColumnType::kDouble:

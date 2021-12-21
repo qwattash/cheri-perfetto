@@ -19,6 +19,7 @@
 
 #include "src/trace_processor/storage/trace_storage.h"
 #include "src/trace_processor/types/trace_processor_context.h"
+#include "src/trace_processor/types/cheri.h"
 
 namespace perfetto {
 namespace trace_processor {
@@ -55,6 +56,21 @@ class TrackEventTracker {
                                     uint32_t pid,
                                     uint32_t tid,
                                     int64_t timestamp);
+
+  // Associate a TrackDescriptor track identified by the given |uuid| with a
+  // CHERI context. This is called during tokenization.
+  // If a reservation for the same |uuid| already exists, verifies that the present
+  // reservation matches the new one.
+  //
+  // The track will be resolved to the CHERI context track
+  // (see InternCHERIContextTrack()) upon the first call to GetDescriptorTrack() with
+  // the same |uuid|. At this time, the identifiers |pid|, |tid| and |cid| will be
+  // resolved to unique identifiers.
+  void ReserveDescriptorCHERIContextTrack(uint64_t uuid,
+                                          uint64_t parent_uuid,
+                                          StringId name,
+                                          CHERIContextId ccid,
+                                          int64_t timestamp);
 
   // Associate a TrackDescriptor track identified by the given |uuid| with a
   // parent track (usually a process- or thread-associated track). This is
@@ -131,6 +147,7 @@ class TrackEventTracker {
     uint64_t parent_uuid = 0;
     base::Optional<uint32_t> pid;
     base::Optional<uint32_t> tid;
+    base::Optional<CHERIContextId> cheri_context;
     int64_t min_timestamp = 0;  // only set if |pid| and/or |tid| is set.
     StringId name = kNullStringId;
 
@@ -160,6 +177,7 @@ class TrackEventTracker {
       kThread,
       kProcess,
       kGlobal,
+      kCHERI,
     };
 
     static ResolvedDescriptorTrack Process(UniquePid upid,
@@ -168,17 +186,26 @@ class TrackEventTracker {
     static ResolvedDescriptorTrack Thread(UniqueTid utid,
                                           bool is_counter,
                                           bool is_root);
+    static ResolvedDescriptorTrack CHERIContext(UniquePid upid,
+                                                UniqueTid utid,
+                                                UniqueCid ucid,
+                                                bool is_counter,
+                                                bool is_root);
     static ResolvedDescriptorTrack Global(bool is_counter, bool is_root);
 
     Scope scope() const { return scope_; }
     bool is_counter() const { return is_counter_; }
     UniqueTid utid() const {
-      PERFETTO_DCHECK(scope() == Scope::kThread);
+      PERFETTO_DCHECK(scope() == Scope::kThread || scope() == Scope::kCHERI);
       return utid_;
     }
     UniquePid upid() const {
-      PERFETTO_DCHECK(scope() == Scope::kProcess);
+      PERFETTO_DCHECK(scope() == Scope::kProcess || scope() == Scope::kCHERI);
       return upid_;
+    }
+    UniqueCid ucid() const {
+      PERFETTO_DCHECK(scope() == Scope::kCHERI);
+      return ucid_;
     }
     UniqueTid is_root_in_scope() const { return is_root_in_scope_; }
 
@@ -192,6 +219,9 @@ class TrackEventTracker {
 
     // Only set when |scope| == |Scope::kProcess|.
     UniquePid upid_;
+
+    // Only set when |scope| == |Scope::kCHERI|.
+    UniqueCid ucid_;
   };
 
   base::Optional<TrackId> GetDescriptorTrackImpl(uint64_t uuid);

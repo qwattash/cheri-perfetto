@@ -69,6 +69,7 @@
 #include "protos/perfetto/trace/track_event/thread_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
+#include "protos/perfetto/trace/track_event/cheri_context_descriptor.pbzero.h"
 
 namespace perfetto {
 namespace trace_processor {
@@ -166,6 +167,7 @@ class MockProcessTracker : public ProcessTracker {
   MOCK_METHOD1(GetOrCreateProcess, UniquePid(uint32_t pid));
   MOCK_METHOD2(SetProcessNameIfUnset,
                void(UniquePid upid, StringId process_name_id));
+  MOCK_METHOD1(GetOrCreateCompartment, UniqueCid(CompartmentId cid));
 };
 
 class MockBoundInserter : public ArgsTracker::BoundInserter {
@@ -2982,6 +2984,34 @@ TEST_F(ProtoTraceParserTest, ConfigPbtxt) {
   SqlValue value = context_.metadata_tracker->GetMetadataForTesting(
       metadata::trace_config_pbtxt);
   EXPECT_THAT(value.string_value, HasSubstr("size_kb: 42"));
+}
+
+TEST_F(ProtoTraceParserTest, TrackEventWithCHERIContextDescriptor) {
+  context_.sorter.reset(new TraceSorter(
+      CreateParser(), std::numeric_limits<int64_t>::max() /*window size*/));
+  {
+    auto* packet = trace_->add_packet();
+    packet->set_trusted_packet_sequence_id(1);
+    packet->set_incremental_state_cleared(true);
+    packet->set_timestamp(1000000);
+    auto* track_desc = packet->set_track_descriptor();
+    track_desc->set_uuid(1234);
+    track_desc->set_name("CHERI track 1");
+    auto* cheri_desc = track_desc->set_cheri_context();
+    cheri_desc->set_pid(15);
+    cheri_desc->set_tid(160);
+    cheri_desc->set_cid(1000);
+    cheri_desc->set_el(3);
+  }
+
+  EXPECT_CALL(*process_, GetOrCreateProcess(15))
+      .WillRepeatedly(testing::Return(1u));
+  EXPECT_CALL(*process_, UpdateThread(160, 15)).WillRepeatedly(testing::Return(2u));
+  EXPECT_CALL(*process_, GetOrCreateCompartment(CompartmentId{1000u, 3u}))
+      .WillRepeatedly(testing::Return(3u));
+
+  Tokenize();
+  context_.sorter->ExtractEventsForced();
 }
 
 }  // namespace

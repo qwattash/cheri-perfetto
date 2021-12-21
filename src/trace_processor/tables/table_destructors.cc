@@ -45,6 +45,7 @@ CpuTable::~CpuTable() = default;
 CpuFreqTable::~CpuFreqTable() = default;
 ThreadTable::~ThreadTable() = default;
 ProcessTable::~ProcessTable() = default;
+CompartmentTable::~CompartmentTable() = default;
 ClockSnapshotTable::~ClockSnapshotTable() = default;
 
 // profiler_tables.h
@@ -83,6 +84,7 @@ ExperimentalFlatSliceTable::~ExperimentalFlatSliceTable() = default;
 TrackTable::~TrackTable() = default;
 ProcessTrackTable::~ProcessTrackTable() = default;
 ThreadTrackTable::~ThreadTrackTable() = default;
+CHERIContextTrackTable::~CHERIContextTrackTable() = default;
 GpuTrackTable::~GpuTrackTable() = default;
 CounterTrackTable::~CounterTrackTable() = default;
 ThreadCounterTrackTable::~ThreadCounterTrackTable() = default;

@@ -285,6 +285,18 @@ void CreateBuiltinViews(sqlite3* db) {
     PERFETTO_ELOG("Error initializing: %s", error);
     sqlite3_free(error);
   }
+
+  sqlite3_exec(db,
+               "CREATE VIEW compartment AS "
+               "SELECT "
+               "id as ucid, "
+               "* "
+               "FROM internal_compartment;",
+               0, 0, &error);
+  if (error) {
+    PERFETTO_ELOG("Error initializing: %s", error);
+    sqlite3_free(error);
+  }
 }
 
 void ExportJson(sqlite3_context* ctx, int /*argc*/, sqlite3_value** argv) {
@@ -812,6 +824,7 @@ TraceProcessorImpl::TraceProcessorImpl(const Config& cfg)
   RegisterDbTable(storage->arg_table());
   RegisterDbTable(storage->thread_table());
   RegisterDbTable(storage->process_table());
+  RegisterDbTable(storage->compartment_table());
 
   RegisterDbTable(storage->slice_table());
   RegisterDbTable(storage->flow_table());
@@ -824,6 +837,7 @@ TraceProcessorImpl::TraceProcessorImpl(const Config& cfg)
   RegisterDbTable(storage->thread_track_table());
   RegisterDbTable(storage->process_track_table());
   RegisterDbTable(storage->gpu_track_table());
+  RegisterDbTable(storage->cheri_context_track_table());
 
   RegisterDbTable(storage->counter_table());
 

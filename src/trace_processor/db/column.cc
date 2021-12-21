@@ -59,6 +59,9 @@ Column::Column(const char* name,
     case ColumnType::kUint32:
       PERFETTO_CHECK(nullable_vector<uint32_t>().IsDense() == IsDense());
       break;
+    case ColumnType::kUint64:
+      PERFETTO_CHECK(nullable_vector<uint64_t>().IsDense() == IsDense());
+      break;
     case ColumnType::kInt64:
       PERFETTO_CHECK(nullable_vector<int64_t>().IsDense() == IsDense());
       break;
@@ -101,6 +104,14 @@ void Column::FilterIntoSlow(FilterOp op, SqlValue value, RowMap* rm) const {
         FilterIntoNumericSlow<uint32_t, true /* is_nullable */>(op, value, rm);
       } else {
         FilterIntoNumericSlow<uint32_t, false /* is_nullable */>(op, value, rm);
+      }
+      break;
+    }
+    case ColumnType::kUint64: {
+      if (IsNullable()) {
+        FilterIntoNumericSlow<uint64_t, true /* is_nullable */>(op, value, rm);
+      } else {
+        FilterIntoNumericSlow<uint64_t, false /* is_nullable */>(op, value, rm);
       }
       break;
     }
@@ -409,6 +420,14 @@ void Column::StableSort(std::vector<uint32_t>* out) const {
         StableSortNumeric<desc, uint32_t, true /* is_nullable */>(out);
       } else {
         StableSortNumeric<desc, uint32_t, false /* is_nullable */>(out);
+      }
+      break;
+    }
+    case ColumnType::kUint64: {
+      if (IsNullable()) {
+        StableSortNumeric<desc, uint64_t, true /* is_nullable */>(out);
+      } else {
+        StableSortNumeric<desc, uint64_t, false /* is_nullable */>(out);
       }
       break;
     }

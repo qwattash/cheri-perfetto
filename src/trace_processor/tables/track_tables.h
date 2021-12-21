@@ -133,6 +133,25 @@ PERFETTO_TP_TABLE(PERFETTO_TP_GPU_COUNTER_TRACK_DEF);
 
 PERFETTO_TP_TABLE(PERFETTO_TP_PERF_COUNTER_TRACK_DEF);
 
+// CHERI context track
+// This is identified as a tuple (pid, tid, cid, el). It is
+// kept distinct from process/thread tracks for now as the
+// composition with compartments is yet to be explored.
+//
+// @param upid Unique process ID, in the process table
+// @param utid Unique thread ID, in the thread table
+// @param ucid Unique compartment ID, in the compartment table
+//
+// @tablegroup Tracks
+#define PERFETTO_TP_CHERI_CONTEXT_TRACK_DEF(NAME, PARENT, C)  \
+  NAME(CHERIContextTrackTable, "cheri_context_track")         \
+  PARENT(PERFETTO_TP_TRACK_TABLE_DEF, C)                      \
+  C(uint32_t, upid)                                           \
+  C(uint32_t, utid)                                           \
+  C(uint32_t, ucid)
+
+PERFETTO_TP_TABLE(PERFETTO_TP_CHERI_CONTEXT_TRACK_DEF);
+
 }  // namespace tables
 }  // namespace trace_processor
 }  // namespace perfetto

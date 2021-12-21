@@ -58,6 +58,25 @@ TrackId TrackTracker::InternProcessTrack(UniquePid upid) {
   return id;
 }
 
+TrackId TrackTracker::InternCHERIContextTrack(UniquePid upid,
+                                              UniqueTid utid,
+                                              UniqueCid ucid) {
+  CHERICtxTrackTuple tuple{upid, utid, ucid};
+
+  auto it = cheri_context_tracks_.find(tuple);
+  if (it != cheri_context_tracks_.end()) {
+    return it->second;
+  }
+
+  tables::CHERIContextTrackTable::Row row;
+  row.upid = upid;
+  row.utid = utid;
+  row.ucid = ucid;
+  auto id = context_->storage->mutable_cheri_context_track_table()->Insert(row).id;
+  cheri_context_tracks_[tuple] = id;
+  return id;
+}
+
 TrackId TrackTracker::InternFuchsiaAsyncTrack(StringId name,
                                               uint32_t upid,
                                               int64_t correlation_id) {

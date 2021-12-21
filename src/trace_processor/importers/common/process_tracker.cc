@@ -474,5 +474,62 @@ void ProcessTracker::NotifyEndOfFile() {
   args_tracker_.Flush();
 }
 
+UniqueCid ProcessTracker::StartNewCompartment(base::Optional<int64_t> timestamp,
+                                              CompartmentId cid)
+{
+  cids_.erase(cid);
+
+  tables::CompartmentTable::Row row;
+  row.cid = cid.cid;
+  row.el = cid.el;
+
+  if (timestamp) {
+    row.start_ts = *timestamp;
+  }
+
+  auto* compartment_table = context_->storage->mutable_compartment_table();
+  UniqueCid ucid = compartment_table->Insert(row).row;
+  cids_.emplace(cid, ucid);
+  return ucid;
+}
+
+void ProcessTracker::EndCompartment(int64_t timestamp, CompartmentId cid)
+{
+  auto* compartment_table = context_->storage->mutable_compartment_table();
+  base::Optional<UniqueCid> opt_ucid = GetCompartmentOrNull(cid);
+  if (!opt_ucid)
+    return;
+
+  UniqueCid ucid = *opt_ucid;
+  compartment_table->mutable_end_ts()->Set(ucid, timestamp);
+  cids_.erase(cid);
+}
+
+UniqueCid ProcessTracker::GetOrCreateCompartment(CompartmentId cid)
+{
+  auto ucid = GetCompartmentOrNull(cid);
+  return ucid ? *ucid : StartNewCompartment(base::nullopt, cid);
+}
+
+void ProcessTracker::SetCompartmentName(UniqueCid ucid,
+                                        StringId compartment_name_id)
+{
+  auto* compartment_table = context_->storage->mutable_compartment_table();
+  compartment_table->mutable_name()->Set(ucid, compartment_name_id);
+}
+
+base::Optional<UniqueCid> ProcessTracker::GetCompartmentOrNull(CompartmentId cid)
+{
+  auto* compartment_table = context_->storage->mutable_compartment_table();
+
+  auto it = cids_.find(cid);
+  if (it == cids_.end())
+    return base::nullopt;
+
+  // Ensure the compartment has not ended
+  PERFETTO_DCHECK(!compartment_table->end_ts()[it->second].has_value());
+  return it->second;
+}
+
 }  // namespace trace_processor
 }  // namespace perfetto

@@ -19,6 +19,7 @@
 
 #include "src/trace_processor/storage/trace_storage.h"
 #include "src/trace_processor/types/trace_processor_context.h"
+#include "src/trace_processor/types/cheri.h"
 
 namespace perfetto {
 namespace trace_processor {
@@ -33,6 +34,11 @@ class TrackTracker {
 
   // Interns a process track into the storage.
   TrackId InternProcessTrack(UniquePid upid);
+
+  // Interns a cheri context track into the storage.
+  TrackId InternCHERIContextTrack(UniquePid upid,
+                                  UniqueTid utid,
+                                  UniqueCid ucid);
 
   // Interns a Fuchsia async track into the storage.
   TrackId InternFuchsiaAsyncTrack(StringId name,
@@ -133,6 +139,17 @@ class TrackTracker {
              std::tie(r.source_id, r.upid, r.source_scope);
     }
   };
+  struct CHERICtxTrackTuple {
+    UniquePid upid;
+    UniqueTid utid;
+    UniqueCid ucid;
+
+    friend bool operator<(const CHERICtxTrackTuple& l,
+                          const CHERICtxTrackTuple& r) {
+      return std::tie(l.upid, l.utid, l.ucid) <
+             std::tie(r.upid, r.utid, r.ucid);
+    }
+  };
 
   std::map<UniqueTid, TrackId> thread_tracks_;
   std::map<UniquePid, TrackId> process_tracks_;
@@ -151,6 +168,7 @@ class TrackTracker {
   std::map<std::pair<StringId, int32_t>, TrackId> irq_counter_tracks_;
   std::map<std::pair<StringId, int32_t>, TrackId> softirq_counter_tracks_;
   std::map<std::pair<StringId, uint32_t>, TrackId> gpu_counter_tracks_;
+  std::map<CHERICtxTrackTuple, TrackId> cheri_context_tracks_;
 
   base::Optional<TrackId> chrome_global_instant_track_id_;
   base::Optional<TrackId> trigger_track_id_;

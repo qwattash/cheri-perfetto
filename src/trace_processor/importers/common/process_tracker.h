@@ -23,6 +23,7 @@
 #include "src/trace_processor/importers/common/args_tracker.h"
 #include "src/trace_processor/storage/trace_storage.h"
 #include "src/trace_processor/types/trace_processor_context.h"
+#include "src/trace_processor/types/cheri.h"
 
 namespace perfetto {
 namespace trace_processor {
@@ -167,6 +168,24 @@ class ProcessTracker {
   // Called when the trace was fully loaded.
   void NotifyEndOfFile();
 
+  // Called when we detect that a new compartment should is created.
+  // This force the tracker to start a new UCID.
+  UniqueCid StartNewCompartment(base::Optional<int64_t> timestamp,
+                                CompartmentId cid);
+
+  // Called when we detect the destruction of a compartment
+  void EndCompartment(int64_t timestamp, CompartmentId cid);
+
+  // Returns the unique compartment identifier or creates a new entry.
+  // Virtual for testing
+  virtual UniqueCid GetOrCreateCompartment(CompartmentId cid);
+
+  // Returns the compartment ucid or base::nullopt if it doesn't exist.
+  base::Optional<UniqueCid> GetCompartmentOrNull(CompartmentId cid);
+
+  // Set the compartment name
+  void SetCompartmentName(UniqueCid ucid, StringId compartment_name_id);
+
  private:
   // Returns the utid of a thread having |tid| and |pid| as the parent process.
   // pid == base::nullopt matches all processes.
@@ -194,6 +213,10 @@ class ProcessTracker {
   // Each pid can have multiple UniquePid entries, a new UniquePid is assigned
   // each time a process is seen in the trace.
   std::map<uint32_t /* pid (aka tgid) */, UniquePid> pids_;
+
+  // Each cid can have multiple UniqueCid entries, a new UniqueCid is assigned
+  // each time a compartment is seen in the trace.
+  std::map<CompartmentId, UniqueCid> cids_;
 
   // Pending thread associations. The meaning of a pair<ThreadA, ThreadB> in
   // this vector is: we know that A and B belong to the same process, but we

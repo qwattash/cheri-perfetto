@@ -51,7 +51,7 @@
 #include "protos/perfetto/trace/track_event/thread_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
-#include "protos/perfetto/trace/track_event/qemu_context_descriptor.pbzero.h"
+#include "protos/perfetto/trace/track_event/cheri_context_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/qemu_event_info.pbzero.h"
 
 namespace perfetto {
@@ -1429,8 +1429,8 @@ void TrackEventParser::ParseTrackDescriptor(
       ParseChromeProcessDescriptor(upid, decoder.chrome_process());
   } else if (decoder.has_counter()) {
     ParseCounterDescriptor(track_id, decoder.counter());
-  } else if (decoder.has_qemu_context()) {
-    ParseQEMUContextDescriptor(decoder.qemu_context());
+  } else if (decoder.has_cheri_context()) {
+    ParseCHERIContextDescriptor(decoder.cheri_context());
   }
 
   // Override the name with the most recent name seen (after sorting by ts).
@@ -1520,18 +1520,18 @@ void TrackEventParser::ParseChromeThreadDescriptor(
       utid, name_id, ThreadNamePriority::kTrackDescriptorThreadType);
 }
 
-void TrackEventParser::ParseQEMUContextDescriptor(
-    protozero::ConstBytes qemu_ctx_descriptor) {
-  protos::pbzero::QEMUContextDescriptor::Decoder decoder(qemu_ctx_descriptor);
-  // TODO(amazzinghi): We *could* just reuse the process/thread tracks for the remote
-  // qemu PID/TID, however I need to make sure that we do not confuse local vs remote
-  // processes and threads.
+// Can not reuse Process/Thread tracks as we do not want to impose a hierarchy
+// for compartment identifiers, instead use a different track altogether.
+void TrackEventParser::ParseCHERIContextDescriptor(
+    protozero::ConstBytes cheri_ctx_descriptor) {
+  protos::pbzero::CHERIContextDescriptor::Decoder decoder(cheri_ctx_descriptor);
   context_->process_tracker->GetOrCreateProcess(
       static_cast<uint32_t>(decoder.pid()));
   context_->process_tracker->UpdateThread(
       static_cast<uint32_t>(decoder.tid()),
       static_cast<uint32_t>(decoder.pid()));
-  // TODO(amazzinghi): Handle compartments in the process tracker
+  CompartmentId cid{decoder.cid(), decoder.el()};
+  context_->process_tracker->GetOrCreateCompartment(cid);
 }
 
 void TrackEventParser::ParseCounterDescriptor(

@@ -21,7 +21,7 @@ import "protos/perfetto/trace/track_event/chrome_thread_descriptor.proto";
 import "protos/perfetto/trace/track_event/process_descriptor.proto";
 import "protos/perfetto/trace/track_event/thread_descriptor.proto";
 import "protos/perfetto/trace/track_event/counter_descriptor.proto";
-import "protos/perfetto/trace/track_event/qemu_context_descriptor.proto";
+import "protos/perfetto/trace/track_event/cheri_context_descriptor.proto";
 
 package perfetto.protos;
 
@@ -87,5 +87,5 @@ message TrackDescriptor {
   optional CounterDescriptor counter = 8;
 
   // CHERI QEMU context descriptor
-  optional QEMUContextDescriptor qemu_context = 99;
+  optional CHERIContextDescriptor cheri_context = 99;
 }

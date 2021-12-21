@@ -201,6 +201,23 @@ TEST_F(ProcessTrackerTest, EndThreadAfterProcessEnd) {
   ASSERT_EQ(context.storage->thread_table().row_count(), 3u);
 }
 
+TEST_F(ProcessTrackerTest, GetOrCreateNewCompartment) {
+  CompartmentId cid{200, 4u};
+  UniqueCid ucid = context.process_tracker->GetOrCreateCompartment(cid);
+  ASSERT_EQ(context.process_tracker->GetOrCreateCompartment(cid), ucid);
+  ASSERT_EQ(context.storage->compartment_table().cid()[ucid], 200u);
+  ASSERT_EQ(context.storage->compartment_table().el()[ucid], 4u);
+}
+
+TEST_F(ProcessTrackerTest, StartNewCompartment) {
+  CompartmentId cid{200, 4u};
+  UniqueCid ucid = context.process_tracker->StartNewCompartment(1000, cid);
+  ASSERT_EQ(context.process_tracker->GetOrCreateCompartment(cid), ucid);
+  ASSERT_EQ(context.storage->compartment_table().start_ts()[ucid], 1000);
+  ASSERT_EQ(context.storage->compartment_table().cid()[ucid], 200u);
+  ASSERT_EQ(context.storage->compartment_table().el()[ucid], 4u);
+}
+
 }  // namespace
 }  // namespace trace_processor
 }  // namespace perfetto
