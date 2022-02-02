@@ -114,11 +114,16 @@ message QEMULogEntryEvtCtxUpdate {
   string mode = 5;
 }
 
+message QEMULogEntryEvtRegdump {
+  repeated QEMULogEntryReg regs = 1;
+}
+
 message QEMULogEntryEvt {
   oneof event {
     QEMULogEntryEvtTraceState state = 1;
     QEMULogEntryEvtCtxUpdate ctx_update = 2;
     uint64 marker = 3;
+    QEMULogEntryEvtRegdump regdump = 4;
   }
 }
 
