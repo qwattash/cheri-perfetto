@@ -210,6 +210,13 @@ class CounterTrack : public Track {
         category_(nullptr),
         unit_(unit) {}
 
+  constexpr CounterTrack(uint64_t uuid_,
+                         const char *name,
+                         Track parent = MakeProcessTrack())
+      : Track(uuid_ ^ kCounterMagic, parent),
+        name_(name),
+        category_(nullptr) {}
+
   static constexpr CounterTrack Global(const char* name,
                                        const char* unit_name) {
     return CounterTrack(name, unit_name, Track());
@@ -243,6 +250,11 @@ class CounterTrack : public Track {
                         unit_multiplier_, is_incremental_);
   }
 
+  constexpr CounterTrack set_is_incremental(bool is_incremental = true) const {
+    return CounterTrack(uuid, parent_uuid, name_, category_, unit_, unit_name_,
+                        unit_multiplier_, is_incremental);
+  }
+
   void Serialize(protos::pbzero::TrackDescriptor*) const;
   protos::gen::TrackDescriptor Serialize() const;
 
@@ -262,13 +274,6 @@ class CounterTrack : public Track {
         unit_name_(unit_name),
         unit_multiplier_(unit_multiplier),
         is_incremental_(is_incremental) {}
-
-  // TODO(skyostil): Expose incremental counters once we decide how to manage
-  // their incremental state.
-  constexpr CounterTrack set_is_incremental(bool is_incremental = true) const {
-    return CounterTrack(uuid, parent_uuid, name_, category_, unit_, unit_name_,
-                        unit_multiplier_, is_incremental);
-  }
 
   const char* const name_;
   const char* const category_;
