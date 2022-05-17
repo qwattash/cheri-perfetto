@@ -25,6 +25,7 @@
 #include "perfetto/ext/base/uuid.h"
 #include "perfetto/tracing/internal/track_event_data_source.h"
 #include "protos/perfetto/trace/track_event/counter_descriptor.gen.h"
+#include "protos/perfetto/trace/track_event/interval_descriptor.gen.h"
 #include "protos/perfetto/trace/track_event/process_descriptor.gen.h"
 #include "protos/perfetto/trace/track_event/process_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/thread_descriptor.gen.h"
@@ -110,6 +111,20 @@ protos::gen::TrackDescriptor CounterTrack::Serialize() const {
 }
 
 void CounterTrack::Serialize(protos::pbzero::TrackDescriptor* desc) const {
+  auto bytes = Serialize().SerializeAsString();
+  desc->AppendRawProtoBytes(bytes.data(), bytes.size());
+}
+
+protos::gen::TrackDescriptor IntervalTrack::Serialize() const {
+  auto desc = Track::Serialize();
+  desc.set_name(name_);
+  auto* interval = desc.mutable_interval_track();
+  interval->set_type(
+      static_cast<protos::gen::IntervalTrackDescriptor_Type>(record_type_));
+  return desc;
+}
+
+void IntervalTrack::Serialize(protos::pbzero::TrackDescriptor* desc) const {
   auto bytes = Serialize().SerializeAsString();
   desc->AppendRawProtoBytes(bytes.data(), bytes.size());
 }

@@ -39,6 +39,7 @@
 #include "src/trace_processor/tables/android_tables.h"
 #include "src/trace_processor/tables/counter_tables.h"
 #include "src/trace_processor/tables/flow_tables.h"
+#include "src/trace_processor/tables/interval_tables.h"
 #include "src/trace_processor/tables/memory_tables.h"
 #include "src/trace_processor/tables/metadata_tables.h"
 #include "src/trace_processor/tables/profiler_tables.h"
@@ -99,6 +100,8 @@ using VulkanAllocId = tables::VulkanMemoryAllocationsTable::Id;
 using ProcessMemorySnapshotId = tables::ProcessMemorySnapshotTable::Id;
 
 using SnapshotNodeId = tables::MemorySnapshotNodeTable::Id;
+
+using IntervalId = tables::IntervalTable::Id;
 
 // TODO(lalitm): this is a temporary hack while migrating the counters table and
 // will be removed when the migration is complete.
@@ -406,6 +409,46 @@ class TraceStorage {
     return &perf_counter_track_table_;
   }
 
+  const tables::CHERIContextCounterTrackTable&
+  cheri_context_counter_track_table() const {
+    return cheri_context_counter_track_table_;
+  }
+  tables::CHERIContextCounterTrackTable*
+  mutable_cheri_context_counter_track_table() {
+    return &cheri_context_counter_track_table_;
+  }
+
+  const tables::IntervalTrackTable& interval_track_table() const {
+    return interval_track_table_;
+  }
+  tables::IntervalTrackTable* mutable_interval_track_table() {
+    return &interval_track_table_;
+  }
+
+  const tables::ThreadIntervalTrackTable& thread_interval_track_table() const {
+    return thread_interval_track_table_;
+  }
+  tables::ThreadIntervalTrackTable* mutable_thread_interval_track_table() {
+    return &thread_interval_track_table_;
+  }
+
+  const tables::ProcessIntervalTrackTable& process_interval_track_table()
+      const {
+    return process_interval_track_table_;
+  }
+  tables::ProcessIntervalTrackTable* mutable_process_interval_track_table() {
+    return &process_interval_track_table_;
+  }
+
+  const tables::CHERIContextIntervalTrackTable&
+  cheri_context_interval_track_table() const {
+    return cheri_context_interval_track_table_;
+  }
+  tables::CHERIContextIntervalTrackTable*
+  mutable_cheri_context_interval_track_table() {
+    return &cheri_context_interval_track_table_;
+  }
+
   const tables::SchedSliceTable& sched_slice_table() const {
     return sched_slice_table_;
   }
@@ -440,6 +483,13 @@ class TraceStorage {
 
   const tables::CounterTable& counter_table() const { return counter_table_; }
   tables::CounterTable* mutable_counter_table() { return &counter_table_; }
+
+  const tables::IntervalTable& interval_table() const {
+    return interval_table_;
+  }
+  tables::IntervalTable* mutable_interval_table() {
+    return &interval_table_;
+  }
 
   const SqlStats& sql_stats() const { return sql_stats_; }
   SqlStats* mutable_sql_stats() { return &sql_stats_; }
@@ -753,7 +803,8 @@ class TraceStorage {
   tables::GpuTrackTable gpu_track_table_{&string_pool_, &track_table_};
   tables::ProcessTrackTable process_track_table_{&string_pool_, &track_table_};
   tables::ThreadTrackTable thread_track_table_{&string_pool_, &track_table_};
-  tables::CHERIContextTrackTable cheri_context_track_table_{&string_pool_, &track_table_};
+  tables::CHERIContextTrackTable cheri_context_track_table_{&string_pool_,
+                                                            &track_table_};
 
   // Track tables for counter events.
   tables::CounterTrackTable counter_track_table_{&string_pool_, &track_table_};
@@ -772,6 +823,18 @@ class TraceStorage {
   tables::GpuCounterGroupTable gpu_counter_group_table_{&string_pool_, nullptr};
   tables::PerfCounterTrackTable perf_counter_track_table_{
       &string_pool_, &counter_track_table_};
+  tables::CHERIContextCounterTrackTable cheri_context_counter_track_table_{
+      &string_pool_, &counter_track_table_};
+
+  // Track tables for interval events
+  tables::IntervalTrackTable interval_track_table_{&string_pool_,
+                                                   &track_table_};
+  tables::ThreadIntervalTrackTable thread_interval_track_table_{
+      &string_pool_, &interval_track_table_};
+  tables::ProcessIntervalTrackTable process_interval_track_table_{
+      &string_pool_, &interval_track_table_};
+  tables::CHERIContextIntervalTrackTable cheri_context_interval_track_table_{
+      &string_pool_, &interval_track_table_};
 
   // Args for all other tables.
   tables::ArgTable arg_table_{&string_pool_, nullptr};
@@ -804,6 +867,9 @@ class TraceStorage {
   // The values from the Counter events from the trace. This includes CPU
   // frequency events as well systrace trace_marker counter events.
   tables::CounterTable counter_table_{&string_pool_, nullptr};
+
+  // The values from the Interval events from the trace.
+  tables::IntervalTable interval_table_{&string_pool_, nullptr};
 
   SqlStats sql_stats_;
 

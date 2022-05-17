@@ -851,6 +851,13 @@ TraceProcessorImpl::TraceProcessorImpl(const Config& cfg)
   RegisterDbTable(storage->gpu_counter_group_table());
   RegisterDbTable(storage->perf_counter_track_table());
 
+  RegisterDbTable(storage->interval_table());
+
+  RegisterDbTable(storage->interval_track_table());
+  RegisterDbTable(storage->process_interval_track_table());
+  RegisterDbTable(storage->thread_interval_track_table());
+  RegisterDbTable(storage->cheri_context_interval_track_table());
+
   RegisterDbTable(storage->heap_graph_object_table());
   RegisterDbTable(storage->heap_graph_reference_table());
   RegisterDbTable(storage->heap_graph_class_table());

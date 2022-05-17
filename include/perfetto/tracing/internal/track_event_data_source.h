@@ -29,6 +29,7 @@
 #include "perfetto/tracing/track_event_category_registry.h"
 #include "protos/perfetto/common/builtin_clock.pbzero.h"
 #include "protos/perfetto/config/track_event/track_event_config.gen.h"
+#include "protos/perfetto/trace/track_event/interval.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
 
 #include <type_traits>
@@ -340,6 +341,47 @@ class TrackEventDataSource
             event_ctx.event()->set_double_counter_value(
                 static_cast<double>(value));
           }
+        });
+  }
+
+  // Trace point with an interval sample.
+  template <typename CategoryType, typename ValueType>
+  static void TraceForCategory(uint32_t instances,
+                               const CategoryType& category,
+                               const char*,
+                               perfetto::protos::pbzero::TrackEvent::Type type,
+                               IntervalTrack track,
+                               ValueType start,
+                               ValueType end,
+                               ValueType value) PERFETTO_ALWAYS_INLINE {
+    PERFETTO_DCHECK(type == perfetto::protos::pbzero::TrackEvent::TYPE_INTERVAL);
+    TraceForCategory(instances, category, /*name=*/nullptr, type, track,
+                     TrackEventInternal::GetTimeNs(), start, end, value);
+  }
+
+  // Trace point with a timestamp and an interval sample
+  template <typename CategoryType,
+            typename TimestampType = uint64_t,
+            typename TimestampTypeCheck = typename std::enable_if<
+              IsValidTimestamp<TimestampType>()>::type,
+            typename ValueType>
+  static void TraceForCategory(uint32_t instances,
+                               const CategoryType& category,
+                               const char*,
+                               perfetto::protos::pbzero::TrackEvent::Type type,
+                               IntervalTrack track,
+                               TimestampType timestamp,
+                               ValueType start,
+                               ValueType end,
+                               ValueType value) PERFETTO_ALWAYS_INLINE {
+    PERFETTO_DCHECK(type == perfetto::protos::pbzero::TrackEvent::TYPE_INTERVAL);
+    TraceForCategoryImpl(
+        instances, category, /*name=*/nullptr, type, track, timestamp,
+        [&](EventContext event_ctx) {
+          auto* interval = event_ctx.event()->set_interval_entry();
+          interval->set_start(start);
+          interval->set_end(end);
+          interval->set_value(value);
         });
   }
 

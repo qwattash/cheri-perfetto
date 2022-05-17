@@ -43,6 +43,8 @@ perfetto_proto_library("@TYPE@") {
     "cheri_context_descriptor.proto",
     "track_descriptor.proto",
     "track_event.proto",
+    "interval_descriptor.proto",
+    "interval.proto"
   ]
 }
 

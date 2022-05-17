@@ -72,6 +72,14 @@ class EventTracker {
                                 RefType ref_type,
                                 bool resolve_utid_to_upid = false);
 
+  // Adds an interval event to the intervals table returning the index of
+  // the newly added row.
+  virtual base::Optional<IntervalId> PushInterval(int64_t timestamp,
+                                                  int64_t start,
+                                                  int64_t end,
+                                                  int64_t value,
+                                                  TrackId track_id);
+
   // Called at the end of trace to flush any events which are pending to the
   // storage.
   void FlushPendingEvents();

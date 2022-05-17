@@ -17,6 +17,7 @@
 #include "src/trace_processor/tables/android_tables.h"
 #include "src/trace_processor/tables/counter_tables.h"
 #include "src/trace_processor/tables/flow_tables.h"
+#include "src/trace_processor/tables/interval_tables.h"
 #include "src/trace_processor/tables/memory_tables.h"
 #include "src/trace_processor/tables/metadata_tables.h"
 #include "src/trace_processor/tables/profiler_tables.h"
@@ -89,17 +90,25 @@ GpuTrackTable::~GpuTrackTable() = default;
 CounterTrackTable::~CounterTrackTable() = default;
 ThreadCounterTrackTable::~ThreadCounterTrackTable() = default;
 ProcessCounterTrackTable::~ProcessCounterTrackTable() = default;
+CHERIContextCounterTrackTable::~CHERIContextCounterTrackTable() = default;
 CpuCounterTrackTable::~CpuCounterTrackTable() = default;
 IrqCounterTrackTable::~IrqCounterTrackTable() = default;
 SoftirqCounterTrackTable::~SoftirqCounterTrackTable() = default;
 GpuCounterTrackTable::~GpuCounterTrackTable() = default;
 PerfCounterTrackTable::~PerfCounterTrackTable() = default;
+IntervalTrackTable::~IntervalTrackTable() = default;
+ThreadIntervalTrackTable::~ThreadIntervalTrackTable() = default;
+ProcessIntervalTrackTable::~ProcessIntervalTrackTable() = default;
+CHERIContextIntervalTrackTable::~CHERIContextIntervalTrackTable() = default;
 
 // memory_tables.h
 MemorySnapshotTable::~MemorySnapshotTable() = default;
 ProcessMemorySnapshotTable::~ProcessMemorySnapshotTable() = default;
 MemorySnapshotNodeTable::~MemorySnapshotNodeTable() = default;
 MemorySnapshotEdgeTable::~MemorySnapshotEdgeTable() = default;
+
+// interval_tables.h
+IntervalTable::~IntervalTable() = default;
 
 }  // namespace tables
 

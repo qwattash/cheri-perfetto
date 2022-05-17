@@ -31,12 +31,13 @@
 
 #include "protos/perfetto/common/builtin_clock.pbzero.h"
 #include "protos/perfetto/trace/trace_packet.pbzero.h"
+#include "protos/perfetto/trace/track_event/cheri_context_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/chrome_process_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/chrome_thread_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/counter_descriptor.pbzero.h"
+#include "protos/perfetto/trace/track_event/interval_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/process_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/thread_descriptor.pbzero.h"
-#include "protos/perfetto/trace/track_event/cheri_context_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
 
@@ -148,25 +149,42 @@ ModuleResult TrackEventTokenizer::TokenizeTrackDescriptorPacket(
         counter.unit_multiplier(), counter.is_incremental(),
         packet.trusted_packet_sequence_id());
   } else if (track.has_cheri_context()) {
-      protos::pbzero::CHERIContextDescriptor::Decoder cheri_ctx(track.cheri_context());
+    protos::pbzero::CHERIContextDescriptor::Decoder cheri_ctx(
+        track.cheri_context());
 
-      if (!cheri_ctx.has_pid() || !cheri_ctx.has_tid() || !cheri_ctx.has_cid() || !cheri_ctx.has_el()) {
-        PERFETTO_ELOG(
-            "No pid, tid, cid or EL in CHERIContextDescriptor for track with uuid %" PRIu64,
-            track.uuid());
-        context_->storage->IncrementStats(stats::track_event_tokenizer_errors);
-        return ModuleResult::Handled();
-      }
-      // TODO(amazzinghi): Currently we do not set any information in the incremental state
-      // Arguably we should set pid/tid information but it is not clear how this would work
-      // for the CHERI contexts.
-      CHERIContextId ccid;
-      ccid.pid = cheri_ctx.pid();
-      ccid.tid = cheri_ctx.tid();
-      ccid.cid = cheri_ctx.cid();
-      ccid.el = cheri_ctx.el();
-      track_event_tracker_->ReserveDescriptorCHERIContextTrack(
-          track.uuid(), track.parent_uuid(), name_id, ccid, packet_timestamp);
+    if (!cheri_ctx.has_pid() || !cheri_ctx.has_tid() || !cheri_ctx.has_cid() ||
+        !cheri_ctx.has_el()) {
+      PERFETTO_ELOG(
+          "No pid, tid, cid or EL in CHERIContextDescriptor for track with "
+          "uuid %" PRIu64,
+          track.uuid());
+      context_->storage->IncrementStats(stats::track_event_tokenizer_errors);
+      return ModuleResult::Handled();
+    }
+    // TODO(amazzinghi): Currently we do not set any information in the
+    // incremental state Arguably we should set pid/tid information but it is
+    // not clear how this would work for the CHERI contexts.
+    CHERIContextId ccid;
+    ccid.pid = cheri_ctx.pid();
+    ccid.tid = cheri_ctx.tid();
+    ccid.cid = cheri_ctx.cid();
+    ccid.el = cheri_ctx.el();
+    track_event_tracker_->ReserveDescriptorCHERIContextTrack(
+        track.uuid(), track.parent_uuid(), name_id, ccid, packet_timestamp);
+  } else if (track.has_interval_track()) {
+    protos::pbzero::IntervalTrackDescriptor::Decoder interval_track(
+        track.interval_track());
+
+    if (!interval_track.has_type()) {
+      PERFETTO_ELOG(
+          "No interval track type in IntervalTrackDescriptor for track with "
+          "uuid %" PRIu64,
+          track.uuid());
+      context_->storage->IncrementStats(stats::track_event_tokenizer_errors);
+      return ModuleResult::Handled();
+    }
+    track_event_tracker_->ReserveDescriptorIntervalTrack(
+        track.uuid(), track.parent_uuid(), name_id);
   } else {
     track_event_tracker_->ReserveDescriptorChildTrack(
         track.uuid(), track.parent_uuid(), name_id);
@@ -344,6 +362,25 @@ void TrackEventTokenizer::TokenizeTrackEventPacket(
     }
 
     data->counter_value = *value;
+  } else if (event.type() == protos::pbzero::TrackEvent::TYPE_INTERVAL) {
+    // TODO(amazzinghi): Do not add anything to TrackEventData, we pull data
+    // out in the parsing phase. However we may need to do some processing
+    // here if we implement different record types for the intervals.
+    // This should follow the absolute counter logic.
+    uint64_t track_uuid;
+    if (event.has_track_uuid()) {
+      track_uuid = event.track_uuid();
+    } else {
+      PERFETTO_DLOG("Ignoring TrackEvent with TYPE_INTERVAL but without track_uuid");
+      context_->storage->IncrementStats(stats::track_event_tokenizer_errors);
+      return;
+    }
+
+    if (!event.has_interval_entry()) {
+      PERFETTO_DLOG("Ignoring TrackEvent with TYPE_INTERVAL but without interval_entry");
+      context_->storage->IncrementStats(stats::track_event_tokenizer_errors);
+      return;
+    }
   }
 
   size_t index = 0;

@@ -104,8 +104,7 @@ void TrackEventTracker::ReserveDescriptorCHERIContextTrack(uint64_t uuid,
                                                            uint64_t parent_uuid,
                                                            StringId name,
                                                            CHERIContextId ccid,
-                                                           int64_t timestamp)
-{
+                                                           int64_t timestamp) {
   DescriptorTrackReservation reservation;
   reservation.min_timestamp = timestamp;
   reservation.parent_uuid = parent_uuid;
@@ -122,13 +121,40 @@ void TrackEventTracker::ReserveDescriptorCHERIContextTrack(uint64_t uuid,
 
   if (!it->second.IsForSameTrack(reservation)) {
     // A track should not be assigned to a different QEMU context identifier
-    PERFETTO_DLOG("New track reservation for QEMU context track with uuid %"
-                  PRIu64 " doesn't match earlier one", uuid);
+    PERFETTO_DLOG(
+        "New track reservation for QEMU context track with uuid %" PRIu64
+        " doesn't match earlier one",
+        uuid);
     context_->storage->IncrementStats(stats::track_event_tokenizer_errors);
     return;
   }
 
   it->second.min_timestamp = std::min(it->second.min_timestamp, timestamp);
+}
+
+void TrackEventTracker::ReserveDescriptorIntervalTrack(uint64_t uuid,
+                                                       uint64_t parent_uuid,
+                                                       StringId name) {
+  DescriptorTrackReservation reservation;
+  reservation.parent_uuid = parent_uuid;
+  reservation.is_interval = true;
+  reservation.name = name;
+
+  std::map<uint64_t, DescriptorTrackReservation>::iterator it;
+  bool inserted;
+  std::tie(it, inserted) =
+      reserved_descriptor_tracks_.insert(std::make_pair<>(uuid, reservation));
+
+  if (inserted)
+    return;
+
+  if (!it->second.IsForSameTrack(reservation)) {
+    PERFETTO_DLOG("New track reservation for interval track with uuid %" PRIu64
+                  " doesn't match earlier one",
+                  uuid);
+    context_->storage->IncrementStats(stats::track_event_tokenizer_errors);
+    return;
+  }
 }
 
 void TrackEventTracker::ReserveDescriptorCounterTrack(
@@ -280,6 +306,13 @@ TrackId TrackEventTracker::CreateTrackFromResolved(
         auto* thread_counter_tracks =
             context_->storage->mutable_thread_counter_track_table();
         return thread_counter_tracks->Insert(row).id;
+      } else if (track.is_interval()) {
+        tables::ThreadIntervalTrackTable::Row row;
+        row.utid = track.utid();
+
+        auto* thread_interval_tracks =
+            context_->storage->mutable_thread_interval_track_table();
+        return thread_interval_tracks->Insert(row).id;
       }
 
       tables::ThreadTrackTable::Row row;
@@ -296,6 +329,13 @@ TrackId TrackEventTracker::CreateTrackFromResolved(
         auto* process_counter_tracks =
             context_->storage->mutable_process_counter_track_table();
         return process_counter_tracks->Insert(row).id;
+      } else if (track.is_interval()) {
+        tables::ProcessIntervalTrackTable::Row row;
+        row.upid = track.upid();
+
+        auto* process_interval_tracks =
+            context_->storage->mutable_process_interval_track_table();
+        return process_interval_tracks->Insert(row).id;
       }
 
       tables::ProcessTrackTable::Row row;
@@ -306,7 +346,23 @@ TrackId TrackEventTracker::CreateTrackFromResolved(
     }
     case ResolvedDescriptorTrack::Scope::kCHERI: {
       if (track.is_counter()) {
-        // TODO(amazzinghi): handle counter case
+        tables::CHERIContextCounterTrackTable::Row row;
+        row.upid = track.upid();
+        row.utid = track.utid();
+        row.ucid = track.ucid();
+
+        auto* cheri_counter_tracks =
+            context_->storage->mutable_cheri_context_counter_track_table();
+        return cheri_counter_tracks->Insert(row).id;
+      } else if (track.is_interval()) {
+        tables::CHERIContextIntervalTrackTable::Row row;
+        row.upid = track.upid();
+        row.utid = track.utid();
+        row.ucid = track.ucid();
+
+        auto* cheri_interval_tracks =
+            context_->storage->mutable_cheri_context_interval_track_table();
+        return cheri_interval_tracks->Insert(row).id;
       }
 
       tables::CHERIContextTrackTable::Row row;
@@ -314,12 +370,16 @@ TrackId TrackEventTracker::CreateTrackFromResolved(
       row.utid = track.utid();
       row.ucid = track.ucid();
 
-      auto* cheri_tracks = context_->storage->mutable_cheri_context_track_table();
+      auto* cheri_tracks =
+          context_->storage->mutable_cheri_context_track_table();
       return cheri_tracks->Insert(row).id;
     }
     case ResolvedDescriptorTrack::Scope::kGlobal: {
       if (track.is_counter())
         return context_->storage->mutable_counter_track_table()->Insert({}).id;
+      else if (track.is_interval()) {
+        return context_->storage->mutable_interval_track_table()->Insert({}).id;
+      }
       return context_->storage->mutable_track_table()->Insert({}).id;
     }
   }
@@ -401,10 +461,9 @@ TrackEventTracker::ResolveDescriptorTrackImpl(
         cheri_context.compartment_id());
 
     // TODO(amazzinghi): do I need to implement reuse and lookup table?
-    return ResolvedDescriptorTrack::CHERIContext(upid, utid, ucid,
-                                                 false /* is_counter */,
-                                                 true /* is_root */);
-
+    return ResolvedDescriptorTrack::CHERIContext(
+        upid, utid, ucid, false /* is_counter */, true /* is_root */,
+        false /* is_interval */);
   }
 
   if (reservation.tid) {
@@ -435,7 +494,8 @@ TrackEventTracker::ResolveDescriptorTrackImpl(
       descriptor_uuids_by_utid_[utid] = uuid;
     }
     return ResolvedDescriptorTrack::Thread(utid, false /* is_counter */,
-                                           true /* is_root*/);
+                                           true /* is_root*/,
+                                           false /* is_interval */);
   }
 
   if (reservation.pid) {
@@ -463,31 +523,30 @@ TrackEventTracker::ResolveDescriptorTrackImpl(
       descriptor_uuids_by_upid_[upid] = uuid;
     }
     return ResolvedDescriptorTrack::Process(upid, false /* is_counter */,
-                                            true /* is_root*/);
+                                            true /* is_root*/,
+                                            false /* is_interval */);
   }
 
   if (parent_resolved_track) {
     switch (parent_resolved_track->scope()) {
       case ResolvedDescriptorTrack::Scope::kThread:
         // If parent is a thread track, create another thread-associated track.
-        return ResolvedDescriptorTrack::Thread(parent_resolved_track->utid(),
-                                               reservation.is_counter,
-                                               false /* is_root*/);
+        return ResolvedDescriptorTrack::Thread(
+            parent_resolved_track->utid(), reservation.is_counter,
+            false /* is_root*/, reservation.is_interval);
       case ResolvedDescriptorTrack::Scope::kProcess:
         // If parent is a process track, create another process-associated
         // track.
-        return ResolvedDescriptorTrack::Process(parent_resolved_track->upid(),
-                                                reservation.is_counter,
-                                                false /* is_root*/);
+        return ResolvedDescriptorTrack::Process(
+            parent_resolved_track->upid(), reservation.is_counter,
+            false /* is_root*/, reservation.is_interval);
       case ResolvedDescriptorTrack::Scope::kCHERI:
         // If parent is a CHERI context track, create another track associated
         // to a CHERI context.
-        break;
-        // TODO(amazzinghi): Mirror the other tracks behaviour
-        // return ResolvedDescriptorTrack::CHERIContext(
-        //     parent_resolved_track->upid(), parent_resolved_track->utid(),
-        //     parent_resolved_track->ucid(), reservation.is_counter,
-        //     false /* is_root */);
+        return ResolvedDescriptorTrack::CHERIContext(
+            parent_resolved_track->upid(), parent_resolved_track->utid(),
+            parent_resolved_track->ucid(), reservation.is_counter,
+            false /* is_root */, reservation.is_interval);
       case ResolvedDescriptorTrack::Scope::kGlobal:
         break;
     }
@@ -514,8 +573,8 @@ TrackEventTracker::ResolveDescriptorTrackImpl(
       is_root_in_scope = false;
     }
   }
-  return ResolvedDescriptorTrack::Global(reservation.is_counter,
-                                         is_root_in_scope);
+  return ResolvedDescriptorTrack::Global(
+      reservation.is_counter, is_root_in_scope, reservation.is_interval);
 }
 
 TrackId TrackEventTracker::GetOrCreateDefaultDescriptorTrack() {
@@ -591,11 +650,13 @@ void TrackEventTracker::OnIncrementalStateCleared(uint32_t packet_sequence_id) {
 TrackEventTracker::ResolvedDescriptorTrack
 TrackEventTracker::ResolvedDescriptorTrack::Process(UniquePid upid,
                                                     bool is_counter,
-                                                    bool is_root) {
+                                                    bool is_root,
+                                                    bool is_interval) {
   ResolvedDescriptorTrack track;
   track.scope_ = Scope::kProcess;
   track.is_counter_ = is_counter;
   track.is_root_in_scope_ = is_root;
+  track.is_interval_ = is_interval;
   track.upid_ = upid;
   return track;
 }
@@ -603,10 +664,12 @@ TrackEventTracker::ResolvedDescriptorTrack::Process(UniquePid upid,
 TrackEventTracker::ResolvedDescriptorTrack
 TrackEventTracker::ResolvedDescriptorTrack::Thread(UniqueTid utid,
                                                    bool is_counter,
-                                                   bool is_root) {
+                                                   bool is_root,
+                                                   bool is_interval) {
   ResolvedDescriptorTrack track;
   track.scope_ = Scope::kThread;
   track.is_counter_ = is_counter;
+  track.is_interval_ = is_interval;
   track.is_root_in_scope_ = is_root;
   track.utid_ = utid;
   return track;
@@ -617,11 +680,13 @@ TrackEventTracker::ResolvedDescriptorTrack::CHERIContext(UniquePid upid,
                                                          UniqueTid utid,
                                                          UniqueCid ucid,
                                                          bool is_counter,
-                                                         bool is_root) {
+                                                         bool is_root,
+                                                         bool is_interval) {
   ResolvedDescriptorTrack track;
   track.scope_ = Scope::kCHERI;
   track.is_counter_ = is_counter;
   track.is_root_in_scope_ = is_root;
+  track.is_interval_ = is_interval;
   track.upid_ = upid;
   track.utid_ = utid;
   track.ucid_ = ucid;
@@ -630,11 +695,13 @@ TrackEventTracker::ResolvedDescriptorTrack::CHERIContext(UniquePid upid,
 
 TrackEventTracker::ResolvedDescriptorTrack
 TrackEventTracker::ResolvedDescriptorTrack::Global(bool is_counter,
-                                                   bool is_root) {
+                                                   bool is_root,
+                                                   bool is_interval) {
   ResolvedDescriptorTrack track;
   track.scope_ = Scope::kGlobal;
   track.is_counter_ = is_counter;
   track.is_root_in_scope_ = is_root;
+  track.is_interval_ = is_interval;
   return track;
 }
 

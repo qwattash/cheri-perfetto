@@ -361,4 +361,10 @@ constexpr bool IsDynamicCategory(const ::perfetto::DynamicCategory&) {
 
 // TODO(skyostil): Add flow events.
 
+#define TRACE_INTERVAL(category, track, ...)                 \
+  PERFETTO_INTERNAL_TRACK_EVENT(                             \
+      category, /*name=*/nullptr,                            \
+      ::perfetto::protos::pbzero::TrackEvent::TYPE_INTERVAL, \
+      ::perfetto::IntervalTrack(track), ##__VA_ARGS__)
+
 #endif  // INCLUDE_PERFETTO_TRACING_TRACK_EVENT_H_

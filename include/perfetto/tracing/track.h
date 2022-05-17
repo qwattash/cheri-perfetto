@@ -25,6 +25,7 @@
 #include "perfetto/tracing/internal/compile_time_hash.h"
 #include "protos/perfetto/trace/trace_packet.pbzero.h"
 #include "protos/perfetto/trace/track_event/counter_descriptor.pbzero.h"
+#include "protos/perfetto/trace/track_event/interval_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.gen.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
 
@@ -211,11 +212,9 @@ class CounterTrack : public Track {
         unit_(unit) {}
 
   constexpr CounterTrack(uint64_t uuid_,
-                         const char *name,
+                         const char* name,
                          Track parent = MakeProcessTrack())
-      : Track(uuid_ ^ kCounterMagic, parent),
-        name_(name),
-        category_(nullptr) {}
+      : Track(uuid_ ^ kCounterMagic, parent), name_(name), category_(nullptr) {}
 
   static constexpr CounterTrack Global(const char* name,
                                        const char* unit_name) {
@@ -281,6 +280,48 @@ class CounterTrack : public Track {
   const char* const unit_name_ = nullptr;
   int64_t unit_multiplier_ = 1;
   bool is_incremental_ = false;
+};
+
+// A track for recording intervals with an associated counter.
+class IntervalTrack : public Track {
+  static constexpr uint64_t kIntervalMagic = 0x5b3ca45834c3424dul;
+
+ public:
+  using Type = perfetto::protos::pbzero::IntervalTrackDescriptor::Type;
+
+  constexpr IntervalTrack(const char* name,
+                          Track parent = MakeProcessTrack())
+      : Track(CompileTimeHash(name) ^ kIntervalMagic, parent),
+        name_(name) {}
+
+  constexpr IntervalTrack(uint64_t uuid_,
+                          const char* name,
+                          Track parent = MakeProcessTrack())
+      : Track(uuid_, parent), name_(name) {}
+
+  constexpr IntervalTrack(uint64_t uuid_,
+                          const char* name,
+                          Type record_type,
+                          Track parent = MakeProcessTrack())
+      : Track(uuid_, parent), name_(name), record_type_(record_type) {}
+
+  constexpr IntervalTrack set_type(Type record_type) const {
+    return IntervalTrack(uuid, parent_uuid, name_, record_type);
+  }
+
+  void Serialize(protos::pbzero::TrackDescriptor*) const;
+  protos::gen::TrackDescriptor Serialize() const;
+
+ private:
+  constexpr IntervalTrack(uint64_t uuid_,
+                          uint64_t parent_uuid_,
+                          const char* name,
+                          Type record_type)
+      : Track(uuid_, parent_uuid_), name_(name), record_type_(record_type) {}
+
+  const char* const name_;
+  Type record_type_ =
+      perfetto::protos::pbzero::IntervalTrackDescriptor::TYPE_HISTOGRAM;
 };
 
 namespace internal {

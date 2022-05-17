@@ -1,0 +1,21 @@
+
+syntax = "proto2";
+
+package perfetto.protos;
+
+// Defines an interval track descriptor.
+// Interval tracks are similar to counters but accumulate ranges of values.
+// This is useful to trace memory regions.
+message IntervalTrackDescriptor {
+  enum Type {
+    // Track represents a set of data that accumulates over time as
+    // in an histogram
+    TYPE_HISTOGRAM = 0;
+    // Track represents an history of interval data. E.g. a reference
+    // count for ranges.
+    TYPE_HISTORY = 1;
+    // Track represents the evolution of a single interval.
+    TYPE_SINGLE = 2;
+  }
+  optional Type type = 1;
+}

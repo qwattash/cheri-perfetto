@@ -143,14 +143,58 @@ PERFETTO_TP_TABLE(PERFETTO_TP_PERF_COUNTER_TRACK_DEF);
 // @param ucid Unique compartment ID, in the compartment table
 //
 // @tablegroup Tracks
-#define PERFETTO_TP_CHERI_CONTEXT_TRACK_DEF(NAME, PARENT, C)  \
-  NAME(CHERIContextTrackTable, "cheri_context_track")         \
-  PARENT(PERFETTO_TP_TRACK_TABLE_DEF, C)                      \
-  C(uint32_t, upid)                                           \
-  C(uint32_t, utid)                                           \
+#define PERFETTO_TP_CHERI_CONTEXT_TRACK_DEF(NAME, PARENT, C) \
+  NAME(CHERIContextTrackTable, "cheri_context_track")        \
+  PARENT(PERFETTO_TP_TRACK_TABLE_DEF, C)                     \
+  C(uint32_t, upid)                                          \
+  C(uint32_t, utid)                                          \
   C(uint32_t, ucid)
 
 PERFETTO_TP_TABLE(PERFETTO_TP_CHERI_CONTEXT_TRACK_DEF);
+
+// @tablegroup Tracks
+#define PERFETTO_TP_CHERI_CONTEXT_COUNTER_TRACK_DEF(NAME, PARENT, C) \
+  NAME(CHERIContextCounterTrackTable, "cheri_context_counter_track") \
+  PARENT(PERFETTO_TP_COUNTER_TRACK_DEF, C)                           \
+  C(uint32_t, upid)                                                  \
+  C(uint32_t, utid)                                                  \
+  C(uint32_t, ucid)
+
+PERFETTO_TP_TABLE(PERFETTO_TP_CHERI_CONTEXT_COUNTER_TRACK_DEF);
+
+// @tablegroup Tracks
+#define PERFETTO_TP_INTERVAL_TRACK_DEF(NAME, PARENT, C) \
+  NAME(IntervalTrackTable, "interval_track")            \
+  PARENT(PERFETTO_TP_TRACK_TABLE_DEF, C)                \
+  C(uint32_t, record_type)
+
+PERFETTO_TP_TABLE(PERFETTO_TP_INTERVAL_TRACK_DEF);
+
+// @tablegroup Tracks
+#define PERFETTO_TP_PROCESS_INTERVAL_TRACK_DEF(NAME, PARENT, C) \
+  NAME(ProcessIntervalTrackTable, "process_interval_track")     \
+  PARENT(PERFETTO_TP_INTERVAL_TRACK_DEF, C)                     \
+  C(uint32_t, upid)
+
+PERFETTO_TP_TABLE(PERFETTO_TP_PROCESS_INTERVAL_TRACK_DEF);
+
+// @tablegroup Tracks
+#define PERFETTO_TP_THREAD_INTERVAL_TRACK_DEF(NAME, PARENT, C) \
+  NAME(ThreadIntervalTrackTable, "thread_interval_track")      \
+  PARENT(PERFETTO_TP_INTERVAL_TRACK_DEF, C)                    \
+  C(uint32_t, utid)
+
+PERFETTO_TP_TABLE(PERFETTO_TP_THREAD_INTERVAL_TRACK_DEF);
+
+// @tablegroup Tracks
+#define PERFETTO_TP_CHERI_CONTEXT_INTERVAL_TRACK_DEF(NAME, PARENT, C)  \
+  NAME(CHERIContextIntervalTrackTable, "cheri_context_interval_track") \
+  PARENT(PERFETTO_TP_INTERVAL_TRACK_DEF, C)                            \
+  C(uint32_t, upid)                                                    \
+  C(uint32_t, utid)                                                    \
+  C(uint32_t, ucid)
+
+PERFETTO_TP_TABLE(PERFETTO_TP_CHERI_CONTEXT_INTERVAL_TRACK_DEF);
 
 }  // namespace tables
 }  // namespace trace_processor

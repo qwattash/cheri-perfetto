@@ -34,6 +34,7 @@ import "protos/perfetto/trace/track_event/chrome_user_event.proto";
 import "protos/perfetto/trace/track_event/chrome_window_handle_event_info.proto";
 import "protos/perfetto/trace/track_event/source_location.proto";
 import "protos/perfetto/trace/track_event/qemu_event_info.proto";
+import "protos/perfetto/trace/track_event/interval.proto";
 
 package perfetto.protos;
 
@@ -158,6 +159,10 @@ message TrackEvent {
     // that most other TrackEvent fields (e.g. categories, name, ..) are not
     // supported for TYPE_COUNTER events. See also CounterDescriptor.
     TYPE_COUNTER = 4;
+
+    // Event that provides a value for an interval track. |track_uuid| should
+    // refer to an interval track and |interval_entry| set to the new value.
+    TYPE_INTERVAL = 5;
   }
   optional Type type = 9;
 
@@ -270,8 +275,9 @@ message TrackEvent {
   // Contact perfetto-dev@googlegroups.com if you are interested in a subrange
   // for your project.
 
-  // TODO(amazzinghi): move to extension
+  // TODO(amazzinghi): move to extension?
   optional QEMUEventInfo qemu = 100;
+  optional IntervalEntry interval_entry = 101;
 
   // Extension range for future use.
   extensions 1000 to 9899;

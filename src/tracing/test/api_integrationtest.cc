@@ -588,6 +588,9 @@ class PerfettoApiTest : public ::testing::TestWithParam<perfetto::BackendType> {
         case perfetto::protos::gen::TrackEvent::TYPE_COUNTER:
           slice += "C";
           break;
+        case perfetto::protos::gen::TrackEvent::TYPE_INTERVAL:
+          slice += "K";
+          break;
         default:
           ADD_FAILURE();
       }
@@ -1675,6 +1678,7 @@ TEST_P(PerfettoApiTest, TrackEventCustomTrackAndTimestamp) {
         EXPECT_EQ(packet.timestamp(), kInstantEventTime);
         break;
       case perfetto::protos::gen::TrackEvent::TYPE_COUNTER:
+      case perfetto::protos::gen::TrackEvent::TYPE_INTERVAL:
       case perfetto::protos::gen::TrackEvent::TYPE_UNSPECIFIED:
         ADD_FAILURE();
     }
@@ -1715,6 +1719,7 @@ TEST_P(PerfettoApiTest, TrackEventCustomTrackAndTimestampNoLambda) {
         break;
       case perfetto::protos::gen::TrackEvent::TYPE_INSTANT:
       case perfetto::protos::gen::TrackEvent::TYPE_COUNTER:
+      case perfetto::protos::gen::TrackEvent::TYPE_INTERVAL:
       case perfetto::protos::gen::TrackEvent::TYPE_UNSPECIFIED:
         ADD_FAILURE();
     }

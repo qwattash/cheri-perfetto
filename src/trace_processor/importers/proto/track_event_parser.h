@@ -42,9 +42,8 @@ namespace trace_processor {
 //
 // TODO(ddrone): replace with a predicate on field id to import new fields
 // automatically
-static constexpr uint16_t kReflectFields[] = {24, 25, 26, 27, 28, 29, 32, 33,
-                                              34, 35, 38, 39, 40, 41, 42, 43,
-                                              100};
+static constexpr uint16_t kReflectFields[] = {
+    24, 25, 26, 27, 28, 29, 32, 33, 34, 35, 38, 39, 40, 41, 42, 43, 100};
 
 class PacketSequenceStateGeneration;
 class TraceProcessorContext;
@@ -69,6 +68,7 @@ class TrackEventParser {
   void ParseChromeProcessDescriptor(UniquePid, protozero::ConstBytes);
   void ParseChromeThreadDescriptor(UniqueTid, protozero::ConstBytes);
   void ParseCounterDescriptor(TrackId, protozero::ConstBytes);
+  void ParseIntervalTrackDescriptor(TrackId, protozero::ConstBytes);
 
   // Reflection-based proto TrackEvent field parser.
   util::ProtoToArgsParser args_parser_;

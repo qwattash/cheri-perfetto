@@ -19,6 +19,7 @@ source_set("tables") {
     "android_tables.h",
     "counter_tables.h",
     "flow_tables.h",
+    "interval_tables.h",
     "macros.h",
     "macros_internal.h",
     "memory_tables.h",

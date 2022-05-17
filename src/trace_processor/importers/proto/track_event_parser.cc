@@ -37,6 +37,7 @@
 
 #include "protos/perfetto/trace/extension_descriptor.pbzero.h"
 #include "protos/perfetto/trace/interned_data/interned_data.pbzero.h"
+#include "protos/perfetto/trace/track_event/cheri_context_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/chrome_compositor_scheduler_state.pbzero.h"
 #include "protos/perfetto/trace/track_event/chrome_histogram_sample.pbzero.h"
 #include "protos/perfetto/trace/track_event/chrome_legacy_ipc.pbzero.h"
@@ -44,15 +45,16 @@
 #include "protos/perfetto/trace/track_event/chrome_thread_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/counter_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/debug_annotation.pbzero.h"
+#include "protos/perfetto/trace/track_event/interval.pbzero.h"
+#include "protos/perfetto/trace/track_event/interval_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/log_message.pbzero.h"
 #include "protos/perfetto/trace/track_event/process_descriptor.pbzero.h"
+#include "protos/perfetto/trace/track_event/qemu_event_info.pbzero.h"
 #include "protos/perfetto/trace/track_event/source_location.pbzero.h"
 #include "protos/perfetto/trace/track_event/task_execution.pbzero.h"
 #include "protos/perfetto/trace/track_event/thread_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_descriptor.pbzero.h"
 #include "protos/perfetto/trace/track_event/track_event.pbzero.h"
-#include "protos/perfetto/trace/track_event/cheri_context_descriptor.pbzero.h"
-#include "protos/perfetto/trace/track_event/qemu_event_info.pbzero.h"
 
 namespace perfetto {
 namespace trace_processor {
@@ -62,6 +64,7 @@ using BoundInserter = ArgsTracker::BoundInserter;
 using protos::pbzero::TrackEvent;
 using LegacyEvent = TrackEvent::LegacyEvent;
 using protozero::ConstBytes;
+using protos::pbzero::IntervalEntry;
 
 // Slices which have been opened but haven't been closed yet will be marked
 // with these placeholder values.
@@ -199,6 +202,12 @@ class TrackEventParser::EventImporter {
     // CounterDescriptor instead). All they have is a |{double_,}counter_value|.
     if (event_.type() == TrackEvent::TYPE_COUNTER) {
       ParseCounterEvent();
+      return util::OkStatus();
+    }
+
+    // Interval-type events don't support arguments, like Counter-type events.
+    if (event_.type() == TrackEvent::TYPE_INTERVAL) {
+      ParseIntervalEvent();
       return util::OkStatus();
     }
 
@@ -551,6 +560,17 @@ class TrackEventParser::EventImporter {
 
     context_->event_tracker->PushCounter(
         ts_, static_cast<double>(event_data_->counter_value), track_id_);
+  }
+
+  void ParseIntervalEvent() {
+    // Tokenizer ensures that TYPE_INTERVAL events are associated with interval
+    // tracks and have values.
+    PERFETTO_DCHECK(storage_->interval_track_table().id().IndexOf(track_id_));
+    PERFETTO_DCHECK(event_.has_interval_entry());
+
+    IntervalEntry::Decoder interval(event_.interval_entry());
+    context_->event_tracker->PushInterval(
+        ts_, interval.start(), interval.end(), interval.value(), track_id_);
   }
 
   void ParseLegacyThreadTimeAndInstructionsAsCounters() {
@@ -1431,6 +1451,8 @@ void TrackEventParser::ParseTrackDescriptor(
     ParseCounterDescriptor(track_id, decoder.counter());
   } else if (decoder.has_cheri_context()) {
     ParseCHERIContextDescriptor(decoder.cheri_context());
+  } else if (decoder.has_interval_track()) {
+    ParseIntervalTrackDescriptor(track_id, decoder.interval_track());
   }
 
   // Override the name with the most recent name seen (after sorting by ts).
@@ -1527,11 +1549,40 @@ void TrackEventParser::ParseCHERIContextDescriptor(
   protos::pbzero::CHERIContextDescriptor::Decoder decoder(cheri_ctx_descriptor);
   context_->process_tracker->GetOrCreateProcess(
       static_cast<uint32_t>(decoder.pid()));
-  context_->process_tracker->UpdateThread(
-      static_cast<uint32_t>(decoder.tid()),
-      static_cast<uint32_t>(decoder.pid()));
+  context_->process_tracker->UpdateThread(static_cast<uint32_t>(decoder.tid()),
+                                          static_cast<uint32_t>(decoder.pid()));
   CompartmentId cid{decoder.cid(), decoder.el()};
   context_->process_tracker->GetOrCreateCompartment(cid);
+}
+
+void TrackEventParser::ParseIntervalTrackDescriptor(
+    TrackId track_id,
+    protozero::ConstBytes interval_descriptor) {
+  using protos::pbzero::IntervalTrackDescriptor;
+
+  IntervalTrackDescriptor::Decoder decoder(interval_descriptor);
+  auto* interval_tracks = context_->storage->mutable_interval_track_table();
+
+  // Fill in the talble columns from the descriptor here. The row should exist.
+  auto opt_track_idx = interval_tracks->id().IndexOf(track_id);
+  if (!opt_track_idx) {
+    context_->storage->IncrementStats(stats::track_event_parser_errors);
+    return;
+  }
+
+  auto track_idx = *opt_track_idx;
+  // TODO(amazzinghi): use an interned string column as the counter unit
+  switch (decoder.type()) {
+    case IntervalTrackDescriptor::TYPE_HISTOGRAM:
+      interval_tracks->mutable_record_type()->Set(track_idx, 0);
+      break;
+    case IntervalTrackDescriptor::TYPE_HISTORY:
+      interval_tracks->mutable_record_type()->Set(track_idx, 1);
+      break;
+    case IntervalTrackDescriptor::TYPE_SINGLE:
+      interval_tracks->mutable_record_type()->Set(track_idx, 2);
+      break;
+  }
 }
 
 void TrackEventParser::ParseCounterDescriptor(

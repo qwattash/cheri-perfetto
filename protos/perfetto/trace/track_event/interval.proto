@@ -1,0 +1,11 @@
+
+syntax = "proto2";
+
+package perfetto.protos;
+
+// Note: intervals without a start or end are discarded.
+message IntervalEntry {
+  optional int64 start = 1;
+  optional int64 end = 2;
+  optional int64 value = 3;
+}
