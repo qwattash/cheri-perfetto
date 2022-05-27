@@ -108,10 +108,12 @@ base::Optional<IntervalId> EventTracker::PushInterval(int64_t timestamp,
                                                       int64_t start,
                                                       int64_t end,
                                                       int64_t value,
-                                                      TrackId track_id) {
+                                                      TrackId track_id,
+                                                      StringId category) {
   if (timestamp < max_timestamp_) {
-    PERFETTO_DLOG("interval event (ts: %" PRId64 ") out of order by %.4f ms, skipping",
-                  timestamp, static_cast<double>(max_timestamp_ - timestamp) / 1e6);
+    PERFETTO_DLOG(
+        "interval event (ts: %" PRId64 ") out of order by %.4f ms, skipping",
+        timestamp, static_cast<double>(max_timestamp_ - timestamp) / 1e6);
     // TODO(amazzinghi): Use a different stat for reporting
     context_->storage->IncrementStats(stats::counter_events_out_of_order);
     return base::nullopt;
@@ -119,7 +121,9 @@ base::Optional<IntervalId> EventTracker::PushInterval(int64_t timestamp,
   max_timestamp_ = timestamp;
 
   auto* interval_values = context_->storage->mutable_interval_table();
-  return interval_values->Insert({timestamp, track_id, start, end, value}).id;
+  return interval_values
+      ->Insert({timestamp, track_id, start, end, value, category})
+      .id;
 }
 
 void EventTracker::FlushPendingEvents() {

@@ -63,8 +63,8 @@ namespace {
 using BoundInserter = ArgsTracker::BoundInserter;
 using protos::pbzero::TrackEvent;
 using LegacyEvent = TrackEvent::LegacyEvent;
-using protozero::ConstBytes;
 using protos::pbzero::IntervalEntry;
+using protozero::ConstBytes;
 
 // Slices which have been opened but haven't been closed yet will be marked
 // with these placeholder values.
@@ -569,8 +569,9 @@ class TrackEventParser::EventImporter {
     PERFETTO_DCHECK(event_.has_interval_entry());
 
     IntervalEntry::Decoder interval(event_.interval_entry());
-    context_->event_tracker->PushInterval(
-        ts_, interval.start(), interval.end(), interval.value(), track_id_);
+    context_->event_tracker->PushInterval(ts_, interval.start(), interval.end(),
+                                          interval.value(), track_id_,
+                                          category_id_);
   }
 
   void ParseLegacyThreadTimeAndInstructionsAsCounters() {

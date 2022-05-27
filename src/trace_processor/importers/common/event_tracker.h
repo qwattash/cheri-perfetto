@@ -78,7 +78,8 @@ class EventTracker {
                                                   int64_t start,
                                                   int64_t end,
                                                   int64_t value,
-                                                  TrackId track_id);
+                                                  TrackId track_id,
+                                                  StringId category);
 
   // Called at the end of trace to flush any events which are pending to the
   // storage.
